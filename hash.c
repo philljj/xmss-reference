@@ -1,18 +1,78 @@
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-#include <openssl/sha.h>
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+#include <wolfssl/wolfcrypt/sha512.h>
 
 #include "hash_address.h"
 #include "utils.h"
 #include "params.h"
 #include "hash.h"
-#include "fips202.h"
 
 #define XMSS_HASH_PADDING_F 0
 #define XMSS_HASH_PADDING_H 1
 #define XMSS_HASH_PADDING_HASH 2
 #define XMSS_HASH_PADDING_PRF 3
 #define XMSS_HASH_PADDING_PRF_KEYGEN 4
+
+static int sha256(const unsigned char *in, unsigned long long inlen,
+                  unsigned char *out)
+{
+    wc_Sha256 sha;
+
+    if (wc_InitSha256_ex(&sha, NULL, INVALID_DEVID) != 0) {
+        fprintf(stderr, "SHA256 Init failed");
+        return -1;
+    }
+
+    if (wc_Sha256Update(&sha, in, inlen) != 0) {
+        fprintf(stderr, "SHA256 Update failed");
+        return -1;
+    }
+
+    if (wc_Sha256Final(&sha, out) != 0) {
+        fprintf(stderr, "SHA256 Final failed");
+        wc_Sha256Free(&sha);
+        return -1;
+    }
+    wc_Sha256Free(&sha);
+
+    return 0;
+}
+
+static int sha512(const unsigned char *in, unsigned long long inlen,
+                  unsigned char *out)
+{
+    /* Disabling everything but sha256 for now. */
+    (void) in;
+    (void) inlen;
+    (void) out;
+    return -1;
+}
+
+static int shake128(unsigned char *out, unsigned long long outlen,
+                    const unsigned char *in, unsigned long long inlen)
+{
+    /* Disabling everything but sha256 for now. */
+    (void) in;
+    (void) inlen;
+    (void) out;
+    (void) outlen;
+    return -1;
+}
+
+static int shake256(unsigned char *out, unsigned long long outlen,
+                    const unsigned char *in, unsigned long long inlen)
+{
+    /* Disabling everything but sha256 for now. */
+    (void) in;
+    (void) inlen;
+    (void) out;
+    (void) outlen;
+    return -1;
+}
 
 void addr_to_bytes(unsigned char *bytes, const uint32_t addr[8])
 {
@@ -27,32 +87,39 @@ static int core_hash(const xmss_params *params,
                      const unsigned char *in, unsigned long long inlen)
 {
     unsigned char buf[64];
+    int           ret = -1;
+
+    if (params == NULL || out == NULL || in == NULL) {
+        return -1;
+    }
 
     if (params->n == 24 && params->func == XMSS_SHA2) {
-        SHA256(in, inlen, buf);
+        ret = sha256(in, inlen, buf);
         memcpy(out, buf, 24);
     }
     else if (params->n == 24 && params->func == XMSS_SHAKE256) {
-        shake256(out, 24, in, inlen);
+        ret = shake256(out, 24, in, inlen);
     }   
     else if (params->n == 32 && params->func == XMSS_SHA2) {
-        SHA256(in, inlen, out);
+        ret = sha256(in, inlen, out);
     }
     else if (params->n == 32 && params->func == XMSS_SHAKE128) {
-        shake128(out, 32, in, inlen);
+        ret = shake128(out, 32, in, inlen);
     }
     else if (params->n == 32 && params->func == XMSS_SHAKE256) {
-        shake256(out, 32, in, inlen);
+        ret = shake256(out, 32, in, inlen);
     }
     else if (params->n == 64 && params->func == XMSS_SHA2) {
-        SHA512(in, inlen, out);
+        ret = sha512(in, inlen, out);
     }
     else if (params->n == 64 && params->func == XMSS_SHAKE256) {
-        shake256(out, 64, in, inlen);
+        ret = shake256(out, 64, in, inlen);
     }
     else {
         return -1;
     }
+
+    if (ret != 0) { return ret; }
     return 0;
 }
 

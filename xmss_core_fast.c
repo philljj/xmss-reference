@@ -5,11 +5,16 @@
 #include "hash.h"
 #include "hash_address.h"
 #include "params.h"
-#include "randombytes.h"
 #include "wots.h"
 #include "utils.h"
 #include "xmss_commons.h"
 #include "xmss_core.h"
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/random.h>
+#include <wolfssl/wolfcrypt/settings.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+#include <wolfssl/wolfcrypt/logging.h>
 
 typedef struct{
     unsigned char h;
@@ -536,9 +541,11 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params)
  * Format pk: [root || PUB_SEED] omitting algo oid.
  */
 int xmss_core_keypair(const xmss_params *params,
-                      unsigned char *pk, unsigned char *sk)
+                      unsigned char *pk, unsigned char *sk,
+                      void * rng)
 {
     uint32_t addr[8] = {0};
+    int      ret = 0;
 
     // TODO refactor BDS state not to need separate treehash instances
     bds_state state;
@@ -555,16 +562,33 @@ int xmss_core_keypair(const xmss_params *params,
     sk[1] = 0;
     sk[2] = 0;
     sk[3] = 0;
+
     // Init SK_SEED (n byte) and SK_PRF (n byte)
-    randombytes(sk + params->index_bytes, 2*params->n);
+    ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes,
+                               (word32) 2*params->n);
+
+    if (ret != 0) {
+        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
+        return -1;
+    }
 
     // Init PUB_SEED (n byte)
-    randombytes(sk + params->index_bytes + 3*params->n, params->n);
+    ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes + 3*params->n,
+                               (word32) params->n);
+
+    if (ret != 0) {
+        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
+        return -1;
+    }
+
     // Copy PUB_SEED to public key
     memcpy(pk + params->n, sk + params->index_bytes + 3*params->n, params->n);
 
     // Compute root
-    treehash_init(params, pk, params->tree_height, 0, &state, sk + params->index_bytes, sk + params->index_bytes + 3*params->n, addr);
+    treehash_init(params, pk, params->tree_height, 0, &state,
+                  sk + params->index_bytes,
+                  sk + params->index_bytes + 3*params->n, addr);
+
     // copy root to sk
     memcpy(sk + params->index_bytes + 2*params->n, pk, params->n);
 
@@ -725,11 +749,12 @@ int xmss_core_sign(const xmss_params *params,
  * Format pk: [root || PUB_SEED] omitting algo oid.
  */
 int xmssmt_core_keypair(const xmss_params *params,
-                        unsigned char *pk, unsigned char *sk)
+                        unsigned char *pk, unsigned char *sk, void * rng)
 {
-    uint32_t addr[8] = {0};
-    unsigned int i;
-    unsigned char *wots_sigs;
+    uint32_t        addr[8] = {0};
+    unsigned int    i;
+    unsigned char * wots_sigs;
+    int             ret = 0;
 
     // TODO refactor BDS state not to need separate treehash instances
     bds_state states[2*params->d - 1];
@@ -750,10 +775,23 @@ int xmssmt_core_keypair(const xmss_params *params,
         sk[i] = 0;
     }
     // Init SK_SEED (params->n byte) and SK_PRF (params->n byte)
-    randombytes(sk+params->index_bytes, 2*params->n);
+    ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes,
+                               (word32) 2*params->n);
+
+    if (ret != 0) {
+        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
+        return -1;
+    }
 
     // Init PUB_SEED (params->n byte)
-    randombytes(sk+params->index_bytes + 3*params->n, params->n);
+    ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes + 3*params->n,
+                               (word32) params->n);
+
+    if (ret != 0) {
+        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
+        return -1;
+    }
+
     // Copy PUB_SEED to public key
     memcpy(pk+params->n, sk+params->index_bytes+3*params->n, params->n);
 

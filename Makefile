@@ -87,3 +87,5 @@ clean:
 	-$(RM) $(TESTS)
 	-$(RM) test/vectors
 	-$(RM) $(UI)
+	-$(RM) *.o
+	-$(RM) *.lo

@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include "xmss.h"
 #include "params.h"
 #include "xmss_core.h"
 
@@ -7,7 +8,8 @@
 identify the parameter set to be used. After setting the parameters accordingly
 it falls back to the regular XMSS core functions. */
 
-int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
+int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
+                 void * rng)
 {
     xmss_params params;
     unsigned int i;
@@ -22,7 +24,8 @@ int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
         i.e. not just for interoperability, but also for internal use. */
         sk[XMSS_OID_LEN - i - 1] = (oid >> (8 * i)) & 0xFF;
     }
-    return xmss_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN);
+    return xmss_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN,
+                             rng);
 }
 
 int xmss_sign(unsigned char *sk,
@@ -59,7 +62,8 @@ int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
     return xmss_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
 }
 
-int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
+int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
+                   void * rng)
 {
     xmss_params params;
     unsigned int i;
@@ -71,7 +75,8 @@ int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
         pk[XMSS_OID_LEN - i - 1] = (oid >> (8 * i)) & 0xFF;
         sk[XMSS_OID_LEN - i - 1] = (oid >> (8 * i)) & 0xFF;
     }
-    return xmssmt_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN);
+    return xmssmt_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN,
+                               rng);
 }
 
 int xmssmt_sign(unsigned char *sk,

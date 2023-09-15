@@ -5,11 +5,15 @@
 #include "hash.h"
 #include "hash_address.h"
 #include "params.h"
-#include "randombytes.h"
 #include "wots.h"
 #include "utils.h"
 #include "xmss_commons.h"
 #include "xmss_core.h"
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/settings.h>
+#include <wolfssl/wolfcrypt/error-crypt.h>
+#include <wolfssl/wolfcrypt/logging.h>
 
 /**
  * For a given leaf index, computes the authentication path and the resulting
@@ -101,12 +105,12 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params)
  * Format pk: [root || PUB_SEED], omitting algorithm OID.
  */
 int xmss_core_keypair(const xmss_params *params,
-                      unsigned char *pk, unsigned char *sk)
+                      unsigned char *pk, unsigned char *sk, void * rng)
 {
     /* The key generation procedure of XMSS and XMSSMT is exactly the same.
        The only important detail is that the right subtree must be selected;
        this requires us to correctly set the d=1 parameter for XMSS. */
-    return xmssmt_core_keypair(params, pk, sk);
+    return xmssmt_core_keypair(params, pk, sk, rng);
 }
 
 /**
@@ -166,11 +170,19 @@ int xmssmt_core_seed_keypair(const xmss_params *params,
  * Format pk: [root || PUB_SEED] omitting algorithm OID.
  */
 int xmssmt_core_keypair(const xmss_params *params,
-                        unsigned char *pk, unsigned char *sk)
+                        unsigned char *pk, unsigned char *sk,
+                        void * rng)
 {
     unsigned char seed[3 * params->n];
+    int ret = 0;
 
-    randombytes(seed, 3 * params->n);
+    ret = wc_RNG_GenerateBlock(rng, seed, (word32) sizeof(seed));
+
+    if (ret != 0) {
+        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
+        return -1;
+    }
+
     xmssmt_core_seed_keypair(params, pk, sk, seed);
 
     return 0;
