@@ -8,6 +8,7 @@
 identify the parameter set to be used. After setting the parameters accordingly
 it falls back to the regular XMSS core functions. */
 
+#ifndef XMSS_VERIFY_ONLY
 int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
                  void * rng)
 {
@@ -45,23 +46,6 @@ int xmss_sign(unsigned char *sk,
     return xmss_core_sign(&params, sk + XMSS_OID_LEN, sm, smlen, m, mlen);
 }
 
-int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
-                   const unsigned char *sm, unsigned long long smlen,
-                   const unsigned char *pk)
-{
-    xmss_params params;
-    uint32_t oid = 0;
-    unsigned int i;
-
-    for (i = 0; i < XMSS_OID_LEN; i++) {
-        oid |= pk[XMSS_OID_LEN - i - 1] << (i * 8);
-    }
-    if (xmss_parse_oid(&params, oid)) {
-        return -1;
-    }
-    return xmss_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
-}
-
 int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
                    void * rng)
 {
@@ -94,6 +78,24 @@ int xmssmt_sign(unsigned char *sk,
         return -1;
     }
     return xmssmt_core_sign(&params, sk + XMSS_OID_LEN, sm, smlen, m, mlen);
+}
+#endif /* ifndef XMSS_VERIFY_ONLY */
+
+int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
+                   const unsigned char *sm, unsigned long long smlen,
+                   const unsigned char *pk)
+{
+    xmss_params params;
+    uint32_t oid = 0;
+    unsigned int i;
+
+    for (i = 0; i < XMSS_OID_LEN; i++) {
+        oid |= pk[XMSS_OID_LEN - i - 1] << (i * 8);
+    }
+    if (xmss_parse_oid(&params, oid)) {
+        return -1;
+    }
+    return xmss_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
 }
 
 int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen,

@@ -12,6 +12,7 @@
  */
 unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params);
 
+#ifndef XMSS_VERIFY_ONLY
 /*
  * Generates a XMSS key pair for a given parameter set.
  * Format sk: [(32bit) index || SK_SEED || SK_PRF || PUB_SEED || root]
@@ -28,15 +29,6 @@ int xmss_core_sign(const xmss_params *params,
                    unsigned char *sk,
                    unsigned char *sm, unsigned long long *smlen,
                    const unsigned char *m, unsigned long long mlen);
-
-/**
- * Verifies a given message signature pair under a given public key.
- * Note that this assumes a pk without an OID, i.e. [root || PUB_SEED]
- */
-int xmss_core_sign_open(const xmss_params *params,
-                        unsigned char *m, unsigned long long *mlen,
-                        const unsigned char *sm, unsigned long long smlen,
-                        const unsigned char *pk);
 
 /*
  * Generates a XMSSMT key pair for a given parameter set.
@@ -64,6 +56,16 @@ int xmssmt_core_sign(const xmss_params *params,
                      unsigned char *sk,
                      unsigned char *sm, unsigned long long *smlen,
                      const unsigned char *m, unsigned long long mlen);
+#endif /* ifndef XMSS_VERIFY_ONLY */
+
+/**
+ * Verifies a given message signature pair under a given public key.
+ * Note that this assumes a pk without an OID, i.e. [root || PUB_SEED]
+ */
+int xmss_core_sign_open(const xmss_params *params,
+                        unsigned char *m, unsigned long long *mlen,
+                        const unsigned char *sm, unsigned long long smlen,
+                        const unsigned char *pk);
 
 /**
  * Verifies a given message signature pair under a given public key.

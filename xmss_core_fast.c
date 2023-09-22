@@ -535,6 +535,7 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params)
         + (params->d - 1) * params->wots_sig_bytes;
 }
 
+#ifndef XMSS_VERIFY_ONLY
 /*
  * Generates a XMSS key pair for a given parameter set.
  * Format sk: [(32bit) idx || SK_SEED || SK_PRF || root || PUB_SEED]
@@ -1012,3 +1013,4 @@ int xmssmt_core_sign(const xmss_params *params,
 
     return 0;
 }
+#endif /* ifndef XMSS_VERIFY_ONLY */
