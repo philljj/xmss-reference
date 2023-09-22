@@ -16,6 +16,8 @@
 #include <wolfssl/wolfcrypt/error-crypt.h>
 #include <wolfssl/wolfcrypt/logging.h>
 
+#ifndef XMSS_VERIFY_ONLY
+
 typedef struct{
     unsigned char h;
     unsigned long next_idx;
@@ -511,6 +513,8 @@ static void bds_round(const xmss_params *params,
         }
     }
 }
+
+#endif /* ifndef XMSS_VERIFY_ONLY */
 
 /**
  * Given a set of parameters, this function returns the size of the secret key.
