@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "hash.h"
+#include "thash.h"
 #include "hash_address.h"
 #include "params.h"
 #include "wots.h"
@@ -567,19 +567,13 @@ int xmss_core_keypair(const xmss_params *params,
     ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes,
                                (word32) 2*params->n);
 
-    if (ret != 0) {
-        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
-        return -1;
-    }
+    if (ret != 0) { return -1; }
 
     // Init PUB_SEED (n byte)
     ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes + 3*params->n,
                                (word32) params->n);
 
-    if (ret != 0) {
-        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
-        return -1;
-    }
+    if (ret != 0) { return -1; }
 
     // Copy PUB_SEED to public key
     memcpy(pk + params->n, sk + params->index_bytes + 3*params->n, params->n);
@@ -778,19 +772,13 @@ int xmssmt_core_keypair(const xmss_params *params,
     ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes,
                                (word32) 2*params->n);
 
-    if (ret != 0) {
-        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
-        return -1;
-    }
+    if (ret != 0) { return -1; }
 
     // Init PUB_SEED (params->n byte)
     ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes + 3*params->n,
                                (word32) params->n);
 
-    if (ret != 0) {
-        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
-        return -1;
-    }
+    if (ret != 0) { return -1; }
 
     // Copy PUB_SEED to public key
     memcpy(pk+params->n, sk+params->index_bytes+3*params->n, params->n);

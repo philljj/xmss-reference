@@ -9,7 +9,7 @@
 #include "hash_address.h"
 #include "utils.h"
 #include "params.h"
-#include "hash.h"
+#include "thash.h"
 
 #define XMSS_HASH_PADDING_F 0
 #define XMSS_HASH_PADDING_H 1

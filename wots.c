@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "utils.h"
-#include "hash.h"
+#include "thash.h"
 #include "wots.h"
 #include "hash_address.h"
 #include "params.h"

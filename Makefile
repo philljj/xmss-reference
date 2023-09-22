@@ -89,3 +89,7 @@ clean:
 	-$(RM) $(UI)
 	-$(RM) *.o
 	-$(RM) *.lo
+
+%.o:%.c
+	@echo "[$(CC)] $@"
+	$(CC) -DXMSSMT -fPIC $(CFLAGS) -c -o $@ $<
