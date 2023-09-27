@@ -118,7 +118,7 @@ void gen_leaf_wots(const xmss_params *params, unsigned char *leaf,
  * Note that this assumes a pk without an OID, i.e. [root || PUB_SEED]
  */
 int xmss_core_sign_open(const xmss_params *params,
-                        unsigned char *m, unsigned long long *mlen,
+                        const unsigned char *msg, unsigned long long *msglen,
                         const unsigned char *sm, unsigned long long smlen,
                         const unsigned char *pk)
 {
@@ -126,15 +126,21 @@ int xmss_core_sign_open(const xmss_params *params,
        For d=1, as is the case with XMSS, some of the calls in the XMSSMT
        routine become vacuous (i.e. the loop only iterates once, and address
        management can be simplified a bit).*/
-    return xmssmt_core_sign_open(params, m, mlen, sm, smlen, pk);
+    return xmssmt_core_sign_open(params, msg, msglen, sm, smlen, pk);
 }
 
+/* Just only allow up to 384 or 512 message length, and use a static array
+ * of max message length + 4 * 32 length to do the prefix.
+ *
+ * The m here should be const.
+ *
+ * */
 /**
  * Verifies a given message signature pair under a given public key.
  * Note that this assumes a pk without an OID, i.e. [root || PUB_SEED]
  */
 int xmssmt_core_sign_open(const xmss_params *params,
-                          unsigned char *m, unsigned long long *mlen,
+                          const unsigned char *msg, unsigned long long *msglen,
                           const unsigned char *sm, unsigned long long smlen,
                           const unsigned char *pk)
 {
@@ -152,23 +158,38 @@ int xmssmt_core_sign_open(const xmss_params *params,
     uint32_t ltree_addr[8] = {0};
     uint32_t node_addr[8] = {0};
 
+    /* 3*params->n + params->padding_len = 128
+     * 128 + 384 = 512 */
+
+    unsigned char m_with_prefix[512];
+
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
     set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
-    *mlen = smlen - params->sig_bytes;
+ /* *msglen = smlen - params->sig_bytes; */
+    if (smlen != params->sig_bytes) {
+        /* Some inconsistency has happened. */
+        return -1;
+    }
 
     /* Convert the index bytes from the signature to an integer. */
     idx = bytes_to_ull(sm, params->index_bytes);
 
     /* Put the message all the way at the end of the m buffer, so that we can
      * prepend the required other inputs for the hash function. */
-    memcpy(m + params->sig_bytes, sm + params->sig_bytes, *mlen);
+ /* memcpy(msg + params->sig_bytes, sm + params->sig_bytes, *msglen); */
+
+    /* This actually worked! */
+    memset(m_with_prefix, 0, sizeof(m_with_prefix));
+ /* memcpy(m_with_prefix + params->padding_len + 3*params->n, sm + params->sig_bytes, *msglen); */
+    memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, *msglen);
 
     /* Compute the message hash. */
     hash_message(params, mhash, sm + params->index_bytes, pk, idx,
-                 m + params->sig_bytes - params->padding_len - 3*params->n,
-                 *mlen);
+                 m_with_prefix,
+              /* m + params->sig_bytes - params->padding_len - 3*params->n, */
+                 *msglen);
     sm += params->index_bytes + params->n;
 
     /* For each subtree.. */
@@ -203,13 +224,13 @@ int xmssmt_core_sign_open(const xmss_params *params,
     /* Check if the root node equals the root node in the public key. */
     if (memcmp(root, pub_root, params->n)) {
         /* If not, zero the message */
-        memset(m, 0, *mlen);
-        *mlen = 0;
+     /* memset(msg, 0, *msglen); */
+        *msglen = 0;
         return -1;
     }
 
     /* If verification was successful, copy the message from the signature. */
-    memcpy(m, sm, *mlen);
+ /* memcpy(msg, sm, *msglen); */
 
     return 0;
 }

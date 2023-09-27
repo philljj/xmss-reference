@@ -15,7 +15,7 @@ int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
 /**
  * Signs a message using an XMSS secret key.
  * Returns
- * 1. an array containing the signature followed by the message AND
+ * 1. an array containing the signature AND
  * 2. an updated secret key!
  */
 int xmss_sign(unsigned char *sk,
@@ -33,7 +33,7 @@ int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
 /**
  * Signs a message using an XMSSMT secret key.
  * Returns
- * 1. an array containing the signature followed by the message AND
+ * 1. an array containing the signature AND
  * 2. an updated secret key!
  */
 int xmssmt_sign(unsigned char *sk,
@@ -48,7 +48,7 @@ int xmssmt_sign(unsigned char *sk,
  * verification succeeds. The (input) message is assumed to be contained in sm
  * which has the form [signature || message].
  */
-int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
+int xmss_sign_open(const unsigned char *msg, unsigned long long *msglen,
                    const unsigned char *sm, unsigned long long smlen,
                    const unsigned char *pk);
 
@@ -59,7 +59,7 @@ int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
  * verification succeeds. The (input) message is assumed to be contained in sm
  * which has the form [signature || message].
  */
-int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen,
+int xmssmt_sign_open(const unsigned char *msg, unsigned long long *msglen,
                      const unsigned char *sm, unsigned long long smlen,
                      const unsigned char *pk);
 #endif

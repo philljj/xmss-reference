@@ -81,7 +81,7 @@ int xmssmt_sign(unsigned char *sk,
 }
 #endif /* ifndef XMSS_VERIFY_ONLY */
 
-int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
+int xmss_sign_open(const unsigned char *msg, unsigned long long *msglen,
                    const unsigned char *sm, unsigned long long smlen,
                    const unsigned char *pk)
 {
@@ -95,10 +95,10 @@ int xmss_sign_open(unsigned char *m, unsigned long long *mlen,
     if (xmss_parse_oid(&params, oid)) {
         return -1;
     }
-    return xmss_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
+    return xmss_core_sign_open(&params, msg, msglen, sm, smlen, pk + XMSS_OID_LEN);
 }
 
-int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen,
+int xmssmt_sign_open(const unsigned char *msg, unsigned long long *msglen,
                      const unsigned char *sm, unsigned long long smlen,
                      const unsigned char *pk)
 {
@@ -112,5 +112,5 @@ int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen,
     if (xmssmt_parse_oid(&params, oid)) {
         return -1;
     }
-    return xmssmt_core_sign_open(&params, m, mlen, sm, smlen, pk + XMSS_OID_LEN);
+    return xmssmt_core_sign_open(&params, msg, msglen, sm, smlen, pk + XMSS_OID_LEN);
 }

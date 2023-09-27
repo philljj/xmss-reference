@@ -600,7 +600,7 @@ int xmss_core_keypair(const xmss_params *params,
 /**
  * Signs a message.
  * Returns
- * 1. an array containing the signature followed by the message AND
+ * 1. an array containing the signature AND
  * 2. an updated secret key!
  *
  */
@@ -733,9 +733,6 @@ int xmss_core_sign(const xmss_params *params,
     sm += params->tree_height*params->n;
     *smlen += params->tree_height*params->n;
 
-    memcpy(sm, m, mlen);
-    *smlen += mlen;
-
     /* Write the updated BDS state back into sk. */
     xmss_serialize_state(params, sk, &state);
 
@@ -809,7 +806,7 @@ int xmssmt_core_keypair(const xmss_params *params,
 /**
  * Signs a message.
  * Returns
- * 1. an array containing the signature followed by the message AND
+ * 1. an array containing the signature AND
  * 2. an updated secret key!
  *
  */
@@ -1009,9 +1006,6 @@ int xmssmt_core_sign(const xmss_params *params,
             }
         }
     }
-
-    memcpy(sm, m, mlen);
-    *smlen += mlen;
 
     xmssmt_serialize_state(params, sk, states);
 
