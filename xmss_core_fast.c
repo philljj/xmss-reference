@@ -607,11 +607,16 @@ int xmss_core_keypair(const xmss_params *params,
 int xmss_core_sign(const xmss_params *params,
                    unsigned char *sk,
                    unsigned char *sm, unsigned long long *smlen,
-                   const unsigned char *m, unsigned long long mlen)
+                   const unsigned char *msg, unsigned long long msglen)
 {
     const unsigned char *pub_root = sk + params->index_bytes + 2*params->n;
 
     uint16_t i = 0;
+
+    if (*smlen != params->sig_bytes) {
+        /* Some inconsistency has happened. */
+        return -1;
+    }
 
     // TODO refactor BDS state not to need separate treehash instances
     bds_state state;
@@ -671,6 +676,11 @@ int xmss_core_sign(const xmss_params *params,
     unsigned char msg_h[params->n];
     uint32_t ots_addr[8] = {0};
 
+    /* 3*params->n + params->padding_len = 128
+     * 128 + 384 = 512 */
+
+    unsigned char m_with_prefix[512];
+
     // ---------------------------------
     // Message Hashing
     // ---------------------------------
@@ -681,12 +691,16 @@ int xmss_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
-    memcpy(sm + params->sig_bytes, m, mlen);
+ /* memcpy(sm + params->sig_bytes, msg, msglen); */
+
+    memset(m_with_prefix, 0, sizeof(m_with_prefix));
+    memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
 
     /* Compute the message hash. */
     hash_message(params, msg_h, R, pub_root, idx,
-                 sm + params->sig_bytes - params->padding_len - 3*params->n,
-                 mlen);
+                 m_with_prefix,
+              /* sm + params->sig_bytes - params->padding_len - 3*params->n, */
+                 msglen);
 
     // Start collecting signature
     *smlen = 0;
@@ -813,9 +827,14 @@ int xmssmt_core_keypair(const xmss_params *params,
 int xmssmt_core_sign(const xmss_params *params,
                      unsigned char *sk,
                      unsigned char *sm, unsigned long long *smlen,
-                     const unsigned char *m, unsigned long long mlen)
+                     const unsigned char *msg, unsigned long long msglen)
 {
     const unsigned char *pub_root = sk + params->index_bytes + 2*params->n;
+
+    if (*smlen != params->sig_bytes) {
+        /* Some inconsistency has happened. */
+        return -1;
+    }
 
     uint64_t idx_tree;
     uint32_t idx_leaf;
@@ -888,6 +907,11 @@ int xmssmt_core_sign(const xmss_params *params,
     // Message Hashing
     // ---------------------------------
 
+    /* 3*params->n + params->padding_len = 128
+     * 128 + 384 = 512 */
+
+    unsigned char m_with_prefix[512];
+
     // Message Hash:
     // First compute pseudorandom value
     ull_to_bytes(idx_bytes_32, 32, idx);
@@ -895,12 +919,17 @@ int xmssmt_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
-    memcpy(sm + params->sig_bytes, m, mlen);
+ /* memcpy(sm + params->sig_bytes, msg, msglen); */
+
+    memset(m_with_prefix, 0, sizeof(m_with_prefix));
+    memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
+
 
     /* Compute the message hash. */
     hash_message(params, msg_h, R, pub_root, idx,
-                 sm + params->sig_bytes - params->padding_len - 3*params->n,
-                 mlen);
+                 m_with_prefix,
+              /* sm + params->sig_bytes - params->padding_len - 3*params->n, */
+                 msglen);
 
     // Start collecting signature
     *smlen = 0;
