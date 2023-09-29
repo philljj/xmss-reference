@@ -3,6 +3,23 @@
 
 #include <stdint.h>
 
+#if defined WOLFBOOT_SIGN_XMSS
+    /* Compile-time constants, assuming SHA256 parameter sets only.
+     *
+     * See params.c for how WOTS_SIG_BYTES and releated were calculated.
+     *
+     * These are to facilitate integration with embedded targets
+     * where variable-length arrays cannot be used.
+     * */
+    #define XMSS_SHA256_N                   32
+    #define XMSS_SHA256_PADDING_LEN         32
+    #define XMSS_SHA256_MSG_PREFIX_LEN   (3 * XMSS_SHA256_N + XMSS_SHA256_PADDING_LEN)
+    #define XMSS_SHA256_MAX_MSG_LEN        128
+    #define XMSS_SHA256_MAX_MSG_HASH_LEN (XMSS_SHA256_MSG_PREFIX_LEN + XMSS_SHA256_MAX_MSG_LEN)
+    #define XMSS_SHA256_WOTS_SIG_BYTES    2144
+    #define XMSS_SHA256_WOTS_LEN            67
+#endif
+
 /* These are merely internal identifiers for the supported hash functions. */
 #define XMSS_SHA2 0
 #define XMSS_SHAKE128 1

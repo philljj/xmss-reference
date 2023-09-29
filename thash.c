@@ -135,13 +135,11 @@ int prf(const xmss_params *params,
         unsigned char *out, const unsigned char in[32],
         const unsigned char *key)
 {
- /* In SHA256 build, all of these are 32:
-  *  params->padding_len: 32
-  *  params->n:           32
-  *
-  * */
- /* unsigned char buf[params->padding_len + params->n + 32]; */
-    unsigned char buf[96];
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char buf[XMSS_SHA256_PADDING_LEN + XMSS_SHA256_N + 32];
+#else
+    unsigned char buf[params->padding_len + params->n + 32];
+#endif
 
     ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF);
     memcpy(buf + params->padding_len, key, params->n);
@@ -158,8 +156,11 @@ int prf_keygen(const xmss_params *params,
         unsigned char *out, const unsigned char *in,
         const unsigned char *key)
 {
- /* unsigned char buf[params->padding_len + 2*params->n + 32]; */
-    unsigned char buf[128];
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char buf[XMSS_SHA256_PADDING_LEN + 2 * XMSS_SHA256_N + 32];
+#else
+    unsigned char buf[params->padding_len + 2*params->n + 32];
+#endif
 
     ull_to_bytes(buf, params->padding_len, XMSS_HASH_PADDING_PRF_KEYGEN);
     memcpy(buf + params->padding_len, key, params->n);
@@ -197,10 +198,13 @@ int thash_h(const xmss_params *params,
             unsigned char *out, const unsigned char *in,
             const unsigned char *pub_seed, uint32_t addr[8])
 {
- /* unsigned char buf[params->padding_len + 3 * params->n];
-    unsigned char bitmask[2 * params->n]; */
-    unsigned char buf[128];
-    unsigned char bitmask[64];
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char buf[XMSS_SHA256_PADDING_LEN + 3 * XMSS_SHA256_N];
+    unsigned char bitmask[2 * XMSS_SHA256_N];
+#else
+    unsigned char buf[params->padding_len + 3 * params->n];
+    unsigned char bitmask[2 * params->n];
+#endif
     unsigned char addr_as_bytes[32];
     unsigned int i;
 
@@ -231,10 +235,13 @@ int thash_f(const xmss_params *params,
             unsigned char *out, const unsigned char *in,
             const unsigned char *pub_seed, uint32_t addr[8])
 {
- /* unsigned char buf[params->padding_len + 2 * params->n];
-    unsigned char bitmask[params->n]; */
-    unsigned char buf[96];
-    unsigned char bitmask[32];
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char buf[XMSS_SHA256_PADDING_LEN + 2 * XMSS_SHA256_N];
+    unsigned char bitmask[XMSS_SHA256_N];
+#else
+    unsigned char buf[params->padding_len + 2 * params->n];
+    unsigned char bitmask[params->n];
+#endif
     unsigned char addr_as_bytes[32];
     unsigned int i;
 

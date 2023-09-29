@@ -16,8 +16,11 @@ static void expand_seed(const xmss_params *params,
                         const unsigned char *pub_seed, uint32_t addr[8])
 {
     uint32_t i;
- /* unsigned char buf[params->n + 32]; */
-    unsigned char buf[64];
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char buf[XMSS_SHA256_N + 32];
+#else
+    unsigned char buf[params->n + 32];
+#endif
 
     set_hash_addr(addr, 0);
     set_key_and_mask(addr, 0);
@@ -84,8 +87,23 @@ static void wots_checksum(const xmss_params *params,
                           int *csum_base_w, const int *msg_base_w)
 {
     int csum = 0;
- /* unsigned char csum_bytes[(params->wots_len2 * params->wots_log_w + 7) / 8]; */
+#if defined WOLFBOOT_SIGN_XMSS
+    /* See params.c
+     *
+     * For NIST SP 800-208 parm sets with SHA256, we have:
+     *
+     *   params->wots_w     == 16
+     *   params->wots_log_w ==  4
+     *   params->wots_len2  ==  3
+     *
+     * Therefore:
+     *
+     *   (3 * 4 + 7) / 8 = 2
+     * */
     unsigned char csum_bytes[2];
+#else
+    unsigned char csum_bytes[(params->wots_len2 * params->wots_log_w + 7) / 8];
+#endif
     unsigned int i;
 
     /* Compute checksum. */
@@ -166,8 +184,11 @@ void wots_pk_from_sig(const xmss_params *params, unsigned char *pk,
                       const unsigned char *sig, const unsigned char *msg,
                       const unsigned char *pub_seed, uint32_t addr[8])
 {
- /* int lengths[params->wots_len]; */
-    int lengths[67];
+#if defined WOLFBOOT_SIGN_XMSS
+    int lengths[XMSS_SHA256_WOTS_LEN];
+#else
+    int lengths[params->wots_len];
+#endif
     uint32_t i;
 
     chain_lengths(params, lengths, msg);

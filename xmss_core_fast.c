@@ -626,7 +626,9 @@ int xmss_core_sign(const xmss_params *params,
     xmss_deserialize_state(params, &state, sk);
 
     // Extract SK
-    unsigned long idx = ((unsigned long)sk[0] << 24) | ((unsigned long)sk[1] << 16) | ((unsigned long)sk[2] << 8) | sk[3];
+    unsigned long idx = ((unsigned long)sk[0] << 24) |
+                        ((unsigned long)sk[1] << 16) |
+                        ((unsigned long)sk[2] <<  8) | sk[3];
     
     /* Check if we can still sign with this sk.
      * If not, return -2

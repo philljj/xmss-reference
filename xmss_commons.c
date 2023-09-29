@@ -58,7 +58,7 @@ static void compute_root(const xmss_params *params, unsigned char *root,
 {
     uint32_t i;
 #if defined WOLFBOOT_SIGN_XMSS
-    unsigned char buffer[64];
+    unsigned char buffer[2 * XMSS_SHA256_N];
 #else
     unsigned char buffer[2*params->n];
 #endif
@@ -110,7 +110,7 @@ void gen_leaf_wots(const xmss_params *params, unsigned char *leaf,
                    uint32_t ltree_addr[8], uint32_t ots_addr[8])
 {
 #if defined WOLFBOOT_SIGN_XMSS
-    unsigned char pk[2144];
+    unsigned char pk[XMSS_SHA256_WOTS_SIG_BYTES];
 #else
     unsigned char pk[params->wots_sig_bytes];
 #endif
@@ -155,10 +155,12 @@ int xmssmt_core_sign_open(const xmss_params *params,
     const unsigned char *pub_root = pk;
     const unsigned char *pub_seed = pk + params->n;
 #if defined WOLFBOOT_SIGN_XMSS
-    unsigned char wots_pk[2144];
-    unsigned char leaf[32];
-    unsigned char root[32];
+    unsigned char m_with_prefix[XMSS_SHA256_MAX_MSG_HASH_LEN];
+    unsigned char wots_pk[XMSS_SHA256_WOTS_SIG_BYTES];
+    unsigned char leaf[XMSS_SHA256_N];
+    unsigned char root[XMSS_SHA256_N];
 #else
+    unsigned char m_with_prefix[*msglen + params->padding_len + 3*params->n];
     unsigned char wots_pk[params->wots_sig_bytes];
     unsigned char leaf[params->n];
     unsigned char root[params->n];
@@ -171,11 +173,6 @@ int xmssmt_core_sign_open(const xmss_params *params,
     uint32_t ots_addr[8] = {0};
     uint32_t ltree_addr[8] = {0};
     uint32_t node_addr[8] = {0};
-
-    /* 3*params->n + params->padding_len = 128
-     * 128 + 384 = 512 */
-
-    unsigned char m_with_prefix[512];
 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
