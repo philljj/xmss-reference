@@ -57,7 +57,11 @@ static void compute_root(const xmss_params *params, unsigned char *root,
                          const unsigned char *pub_seed, uint32_t addr[8])
 {
     uint32_t i;
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char buffer[64];
+#else
     unsigned char buffer[2*params->n];
+#endif
 
     /* If leafidx is odd (last bit = 1), current path element is a right child
        and auth_path has to go left. Otherwise it is the other way around. */
@@ -105,7 +109,11 @@ void gen_leaf_wots(const xmss_params *params, unsigned char *leaf,
                    const unsigned char *sk_seed, const unsigned char *pub_seed,
                    uint32_t ltree_addr[8], uint32_t ots_addr[8])
 {
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char pk[2144];
+#else
     unsigned char pk[params->wots_sig_bytes];
+#endif
 
     wots_pkgen(params, pk, sk_seed, pub_seed, ots_addr);
 
@@ -146,9 +154,15 @@ int xmssmt_core_sign_open(const xmss_params *params,
 {
     const unsigned char *pub_root = pk;
     const unsigned char *pub_seed = pk + params->n;
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char wots_pk[2144];
+    unsigned char leaf[32];
+    unsigned char root[32];
+#else
     unsigned char wots_pk[params->wots_sig_bytes];
     unsigned char leaf[params->n];
     unsigned char root[params->n];
+#endif
     unsigned char *mhash = root;
     unsigned long long idx = 0;
     unsigned int i;

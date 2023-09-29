@@ -90,6 +90,6 @@ clean:
 	-$(RM) *.o
 	-$(RM) *.lo
 
-%.o:%.c
-	@echo "[$(CC)] $@"
-	$(CC) -DXMSSMT -fPIC $(CFLAGS) -c -o $@ $<
+#%.o:%.c
+#	@echo "[$(CC)] $@"
+#	$(CC) -DXMSSMT -fPIC $(CFLAGS) -c -o $@ $<

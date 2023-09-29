@@ -22,17 +22,23 @@ static int sha256(const unsigned char *in, unsigned long long inlen,
     wc_Sha256 sha;
 
     if (wc_InitSha256_ex(&sha, NULL, INVALID_DEVID) != 0) {
+#if !defined WOLFBOOT_SIGN_XMSS
         fprintf(stderr, "SHA256 Init failed");
+#endif
         return -1;
     }
 
     if (wc_Sha256Update(&sha, in, inlen) != 0) {
+#if !defined WOLFBOOT_SIGN_XMSS
         fprintf(stderr, "SHA256 Update failed");
+#endif
         return -1;
     }
 
     if (wc_Sha256Final(&sha, out) != 0) {
+#if !defined WOLFBOOT_SIGN_XMSS
         fprintf(stderr, "SHA256 Final failed");
+#endif
         wc_Sha256Free(&sha);
         return -1;
     }
