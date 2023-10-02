@@ -146,6 +146,10 @@ int xmss_core_sign_open(const xmss_params *params,
 /**
  * Verifies a given message signature pair under a given public key.
  * Note that this assumes a pk without an OID, i.e. [root || PUB_SEED]
+ *
+ * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to enable having a manageable small
+ * static array, rather than a variable length array, for the message hash.
  */
 int xmssmt_core_sign_open(const xmss_params *params,
                           const unsigned char *msg, unsigned long long *msglen,
@@ -173,6 +177,12 @@ int xmssmt_core_sign_open(const xmss_params *params,
     uint32_t ots_addr[8] = {0};
     uint32_t ltree_addr[8] = {0};
     uint32_t node_addr[8] = {0};
+
+#if defined WOLFBOOT_SIGN_XMSS
+    if (*msglen > XMSS_SHA256_MAX_MSG_LEN) {
+        return -1;
+    }
+#endif
 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
     set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
