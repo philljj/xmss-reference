@@ -114,19 +114,19 @@ int xmss_core_keypair(const xmss_params *params,
 }
 
 /**
- * Signs a message. Returns an array containing the signature followed by the
- * message and an updated secret key.
+ * Signs a message. Returns an array containing the signature,
+ * and an updated secret key.
  */
 int xmss_core_sign(const xmss_params *params,
                    unsigned char *sk,
-                   unsigned char *sm, unsigned long long *smlen,
-                   const unsigned char *m, unsigned long long mlen)
+                   unsigned char *sig, unsigned long long *siglen,
+                   const unsigned char *msg, unsigned long long msglen)
 {
     /* XMSS signatures are fundamentally an instance of XMSSMT signatures.
        For d=1, as is the case with XMSS, some of the calls in the XMSSMT
        routine become vacuous (i.e. the loop only iterates once, and address
        management can be simplified a bit).*/
-    return xmssmt_core_sign(params, sk, sm, smlen, m, mlen);
+    return xmssmt_core_sign(params, sk, sig, siglen, msg, msglen);
 }
 
 /*

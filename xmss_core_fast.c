@@ -602,20 +602,35 @@ int xmss_core_keypair(const xmss_params *params,
  * 1. an array containing the signature AND
  * 2. an updated secret key!
  *
+ * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to enable having a manageable small
+ * static array, rather than a variable length array, for the message hash.
  */
 int xmss_core_sign(const xmss_params *params,
                    unsigned char *sk,
-                   unsigned char *sm, unsigned long long *smlen,
+                   unsigned char *sig, unsigned long long *siglen,
                    const unsigned char *msg, unsigned long long msglen)
 {
     const unsigned char *pub_root = sk + params->index_bytes + 2*params->n;
 
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char m_with_prefix[XMSS_SHA256_MAX_MSG_HASH_LEN];
+#else
+    unsigned char m_with_prefix[msglen + params->padding_len + 3*params->n];
+#endif
+
     uint16_t i = 0;
 
-    if (*smlen != params->sig_bytes) {
+    if (*siglen != params->sig_bytes) {
         /* Some inconsistency has happened. */
         return -1;
     }
+
+#if defined WOLFBOOT_SIGN_XMSS
+    if (msglen > XMSS_SHA256_MAX_MSG_LEN) {
+        return -1;
+    }
+#endif
 
     // TODO refactor BDS state not to need separate treehash instances
     bds_state state;
@@ -677,11 +692,6 @@ int xmss_core_sign(const xmss_params *params,
     unsigned char msg_h[params->n];
     uint32_t ots_addr[8] = {0};
 
-    /* 3*params->n + params->padding_len = 128
-     * 128 + 384 = 512 */
-
-    unsigned char m_with_prefix[512];
-
     // ---------------------------------
     // Message Hashing
     // ---------------------------------
@@ -692,7 +702,7 @@ int xmss_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
- /* memcpy(sm + params->sig_bytes, msg, msglen); */
+ /* memcpy(sig + params->sig_bytes, msg, msglen); */
 
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
@@ -700,28 +710,28 @@ int xmss_core_sign(const xmss_params *params,
     /* Compute the message hash. */
     hash_message(params, msg_h, R, pub_root, idx,
                  m_with_prefix,
-              /* sm + params->sig_bytes - params->padding_len - 3*params->n, */
+              /* sig + params->sig_bytes - params->padding_len - 3*params->n, */
                  msglen);
 
     // Start collecting signature
-    *smlen = 0;
+    *siglen = 0;
 
     // Copy index to signature
-    sm[0] = (idx >> 24) & 255;
-    sm[1] = (idx >> 16) & 255;
-    sm[2] = (idx >> 8) & 255;
-    sm[3] = idx & 255;
+    sig[0] = (idx >> 24) & 255;
+    sig[1] = (idx >> 16) & 255;
+    sig[2] = (idx >> 8) & 255;
+    sig[3] = idx & 255;
 
-    sm += 4;
-    *smlen += 4;
+    sig += 4;
+    *siglen += 4;
 
     // Copy R to signature
     for (i = 0; i < params->n; i++) {
-        sm[i] = R[i];
+        sig[i] = R[i];
     }
 
-    sm += params->n;
-    *smlen += params->n;
+    sig += params->n;
+    *siglen += params->n;
 
     // ----------------------------------
     // Now we start to "really sign"
@@ -732,21 +742,21 @@ int xmss_core_sign(const xmss_params *params,
     set_ots_addr(ots_addr, (uint32_t) idx);
 
     // Compute WOTS signature
-    wots_sign(params, sm, msg_h, sk_seed, pub_seed, ots_addr);
+    wots_sign(params, sig, msg_h, sk_seed, pub_seed, ots_addr);
 
-    sm += params->wots_sig_bytes;
-    *smlen += params->wots_sig_bytes;
+    sig += params->wots_sig_bytes;
+    *siglen += params->wots_sig_bytes;
 
     // the auth path was already computed during the previous round
-    memcpy(sm, state.auth, params->tree_height*params->n);
+    memcpy(sig, state.auth, params->tree_height*params->n);
 
     if (idx < (1U << params->tree_height) - 1) {
         bds_round(params, &state, idx, sk_seed, pub_seed, ots_addr);
         bds_treehash_update(params, &state, (params->tree_height - params->bds_k) >> 1, sk_seed, pub_seed, ots_addr);
     }
 
-    sm += params->tree_height*params->n;
-    *smlen += params->tree_height*params->n;
+    sig += params->tree_height*params->n;
+    *siglen += params->tree_height*params->n;
 
     /* Write the updated BDS state back into sk. */
     xmss_serialize_state(params, sk, &state);
@@ -824,18 +834,33 @@ int xmssmt_core_keypair(const xmss_params *params,
  * 1. an array containing the signature AND
  * 2. an updated secret key!
  *
+ * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to enable having a manageable small
+ * static array, rather than a variable length array, for the message hash.
  */
 int xmssmt_core_sign(const xmss_params *params,
                      unsigned char *sk,
-                     unsigned char *sm, unsigned long long *smlen,
+                     unsigned char *sig, unsigned long long *siglen,
                      const unsigned char *msg, unsigned long long msglen)
 {
     const unsigned char *pub_root = sk + params->index_bytes + 2*params->n;
 
-    if (*smlen != params->sig_bytes) {
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char m_with_prefix[XMSS_SHA256_MAX_MSG_HASH_LEN];
+#else
+    unsigned char m_with_prefix[msglen + params->padding_len + 3*params->n];
+#endif
+
+    if (*siglen != params->sig_bytes) {
         /* Some inconsistency has happened. */
         return -1;
     }
+
+#if defined WOLFBOOT_SIGN_XMSS
+    if (msglen > XMSS_SHA256_MAX_MSG_LEN) {
+        return -1;
+    }
+#endif
 
     uint64_t idx_tree;
     uint32_t idx_leaf;
@@ -908,11 +933,6 @@ int xmssmt_core_sign(const xmss_params *params,
     // Message Hashing
     // ---------------------------------
 
-    /* 3*params->n + params->padding_len = 128
-     * 128 + 384 = 512 */
-
-    unsigned char m_with_prefix[512];
-
     // Message Hash:
     // First compute pseudorandom value
     ull_to_bytes(idx_bytes_32, 32, idx);
@@ -920,7 +940,7 @@ int xmssmt_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
- /* memcpy(sm + params->sig_bytes, msg, msglen); */
+ /* memcpy(sig + params->sig_bytes, msg, msglen); */
 
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
@@ -929,27 +949,27 @@ int xmssmt_core_sign(const xmss_params *params,
     /* Compute the message hash. */
     hash_message(params, msg_h, R, pub_root, idx,
                  m_with_prefix,
-              /* sm + params->sig_bytes - params->padding_len - 3*params->n, */
+              /* sig + params->sig_bytes - params->padding_len - 3*params->n, */
                  msglen);
 
     // Start collecting signature
-    *smlen = 0;
+    *siglen = 0;
 
     // Copy index to signature
     for (i = 0; i < params->index_bytes; i++) {
-        sm[i] = (idx >> 8*(params->index_bytes - 1 - i)) & 255;
+        sig[i] = (idx >> 8*(params->index_bytes - 1 - i)) & 255;
     }
 
-    sm += params->index_bytes;
-    *smlen += params->index_bytes;
+    sig += params->index_bytes;
+    *siglen += params->index_bytes;
 
     // Copy R to signature
     for (i = 0; i < params->n; i++) {
-        sm[i] = R[i];
+        sig[i] = R[i];
     }
 
-    sm += params->n;
-    *smlen += params->n;
+    sig += params->n;
+    *siglen += params->n;
 
     // ----------------------------------
     // Now we start to "really sign"
@@ -966,27 +986,27 @@ int xmssmt_core_sign(const xmss_params *params,
     set_ots_addr(ots_addr, idx_leaf);
 
     // Compute WOTS signature
-    wots_sign(params, sm, msg_h, sk_seed, pub_seed, ots_addr);
+    wots_sign(params, sig, msg_h, sk_seed, pub_seed, ots_addr);
 
-    sm += params->wots_sig_bytes;
-    *smlen += params->wots_sig_bytes;
+    sig += params->wots_sig_bytes;
+    *siglen += params->wots_sig_bytes;
 
-    memcpy(sm, states[0].auth, params->tree_height*params->n);
-    sm += params->tree_height*params->n;
-    *smlen += params->tree_height*params->n;
+    memcpy(sig, states[0].auth, params->tree_height*params->n);
+    sig += params->tree_height*params->n;
+    *siglen += params->tree_height*params->n;
 
     // prepare signature of remaining layers
     for (i = 1; i < params->d; i++) {
         // put WOTS signature in place
-        memcpy(sm, wots_sigs + (i-1)*params->wots_sig_bytes, params->wots_sig_bytes);
+        memcpy(sig, wots_sigs + (i-1)*params->wots_sig_bytes, params->wots_sig_bytes);
 
-        sm += params->wots_sig_bytes;
-        *smlen += params->wots_sig_bytes;
+        sig += params->wots_sig_bytes;
+        *siglen += params->wots_sig_bytes;
 
         // put AUTH nodes in place
-        memcpy(sm, states[i].auth, params->tree_height*params->n);
-        sm += params->tree_height*params->n;
-        *smlen += params->tree_height*params->n;
+        memcpy(sig, states[i].auth, params->tree_height*params->n);
+        sig += params->tree_height*params->n;
+        *siglen += params->tree_height*params->n;
     }
 
     updates = (params->tree_height - params->bds_k) >> 1;
