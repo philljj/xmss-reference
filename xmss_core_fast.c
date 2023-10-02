@@ -100,7 +100,7 @@ static void xmssmt_deserialize_state(const xmss_params *params,
         states[i].stack = sk;
         sk += (params->tree_height + 1) * params->n;
 
-        states[i].stackoffset = bytes_to_ull(sk, 4);
+        states[i].stackoffset = (unsigned int) bytes_to_ull(sk, 4);
         sk += 4;
 
         states[i].stacklevels = sk;
@@ -132,7 +132,7 @@ static void xmssmt_deserialize_state(const xmss_params *params,
         states[i].retain = sk;
         sk += ((1 << params->bds_k) - params->bds_k - 1) * params->n;
 
-        states[i].next_leaf = bytes_to_ull(sk, 4);
+        states[i].next_leaf = (unsigned int) bytes_to_ull(sk, 4);
         sk += 4;
     }
 
@@ -305,8 +305,8 @@ static void treehash_update(const xmss_params *params,
     copy_subtree_addr(node_addr, addr);
     set_type(node_addr, 2);
 
-    set_ltree_addr(ltree_addr, treehash->next_idx);
-    set_ots_addr(ots_addr, treehash->next_idx);
+    set_ltree_addr(ltree_addr, (uint32_t) treehash->next_idx);
+    set_ots_addr(ots_addr, (uint32_t) treehash->next_idx);
 
     unsigned char nodebuffer[2 * params->n];
     unsigned int nodeheight = 0;
@@ -315,7 +315,7 @@ static void treehash_update(const xmss_params *params,
         memcpy(nodebuffer + params->n, nodebuffer, params->n);
         memcpy(nodebuffer, state->stack + (state->stackoffset-1)*params->n, params->n);
         set_tree_height(node_addr, nodeheight);
-        set_tree_index(node_addr, (treehash->next_idx >> (nodeheight+1)));
+        set_tree_index(node_addr, (uint32_t) (treehash->next_idx >> (nodeheight+1)));
         thash_h(params, nodebuffer, nodebuffer, pub_seed, node_addr);
         nodeheight++;
         treehash->stackusage--;
@@ -482,13 +482,13 @@ static void bds_round(const xmss_params *params,
         memcpy(state->keep + (tau >> 1)*params->n, state->auth + tau*params->n, params->n);
     }
     if (tau == 0) {
-        set_ltree_addr(ltree_addr, leaf_idx);
-        set_ots_addr(ots_addr, leaf_idx);
+        set_ltree_addr(ltree_addr, (uint32_t) leaf_idx);
+        set_ots_addr(ots_addr, (uint32_t) leaf_idx);
         gen_leaf_wots(params, state->auth, sk_seed, pub_seed, ltree_addr, ots_addr);
     }
     else {
         set_tree_height(node_addr, (tau-1));
-        set_tree_index(node_addr, leaf_idx >> tau);
+        set_tree_index(node_addr, (uint32_t) leaf_idx >> tau);
         thash_h(params, state->auth + tau * params->n, buf, pub_seed, node_addr);
         for (i = 0; i < tau; i++) {
             if (i < params->tree_height - params->bds_k) {
@@ -496,13 +496,13 @@ static void bds_round(const xmss_params *params,
             }
             else {
                 offset = (1 << (params->tree_height - 1 - i)) + i - params->tree_height;
-                rowidx = ((leaf_idx >> i) - 1) >> 1;
+                rowidx = (unsigned int) ((leaf_idx >> i) - 1) >> 1;
                 memcpy(state->auth + i * params->n, state->retain + (offset + rowidx) * params->n, params->n);
             }
         }
 
         for (i = 0; i < ((tau < params->tree_height - params->bds_k) ? tau : (params->tree_height - params->bds_k)); i++) {
-            startidx = leaf_idx + 1 + 3 * (1 << i);
+            startidx = (unsigned int) leaf_idx + 1 + 3 * (1 << i);
             if (startidx < 1U << params->tree_height) {
                 state->treehash[i].h = i;
                 state->treehash[i].next_idx = startidx;
@@ -729,7 +729,7 @@ int xmss_core_sign(const xmss_params *params,
 
     // Prepare Address
     set_type(ots_addr, 0);
-    set_ots_addr(ots_addr, idx);
+    set_ots_addr(ots_addr, (uint32_t) idx);
 
     // Compute WOTS signature
     wots_sign(params, sm, msg_h, sk_seed, pub_seed, ots_addr);
@@ -1002,7 +1002,7 @@ int xmssmt_core_sign(const xmss_params *params,
         if (! (((idx + 1) & ((1ULL << ((i+1)*params->tree_height)) - 1)) == 0)) {
             idx_leaf = (idx >> (params->tree_height * i)) & ((1 << params->tree_height)-1);
             idx_tree = (idx >> (params->tree_height * (i+1)));
-            set_layer_addr(addr, i);
+            set_layer_addr(addr, (uint32_t) i);
             set_tree_addr(addr, idx_tree);
             if (i == (unsigned int) (needswap_upto + 1)) {
                 bds_round(params, &states[i], idx_leaf, sk_seed, pub_seed, addr);
@@ -1020,7 +1020,7 @@ int xmssmt_core_sign(const xmss_params *params,
         else if (idx < (1ULL << params->full_height) - 1) {
             deep_state_swap(params, states+params->d + i, states + i);
 
-            set_layer_addr(ots_addr, (i+1));
+            set_layer_addr(ots_addr, (uint32_t) (i+1));
             set_tree_addr(ots_addr, ((idx + 1) >> ((i+2) * params->tree_height)));
             set_ots_addr(ots_addr, (((idx >> ((i+1) * params->tree_height)) + 1) & ((1 << params->tree_height)-1)));
 
@@ -1030,7 +1030,7 @@ int xmssmt_core_sign(const xmss_params *params,
             states[params->d + i].next_leaf = 0;
 
             updates--; // WOTS-signing counts as one update
-            needswap_upto = i;
+            needswap_upto = (int) i;
             for (j = 0; j < params->tree_height-params->bds_k; j++) {
                 states[i].treehash[j].completed = 1;
             }

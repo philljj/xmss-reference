@@ -114,7 +114,7 @@ static void wots_checksum(const xmss_params *params,
     /* Convert checksum to base_w. */
     /* Make sure expected empty zero bits are the least significant bits. */
     csum = csum << (8 - ((params->wots_len2 * params->wots_log_w) % 8));
-    ull_to_bytes(csum_bytes, sizeof(csum_bytes), csum);
+    ull_to_bytes(csum_bytes, (unsigned int) sizeof(csum_bytes), csum);
     base_w(params, csum_base_w, params->wots_len2, csum_bytes);
 }
 

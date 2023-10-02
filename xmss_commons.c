@@ -78,7 +78,7 @@ static void compute_root(const xmss_params *params, unsigned char *root,
     for (i = 0; i < params->tree_height - 1; i++) {
         set_tree_height(addr, i);
         leafidx >>= 1;
-        set_tree_index(addr, leafidx);
+        set_tree_index(addr, (uint32_t) leafidx);
 
         /* Pick the right or left neighbor, depending on parity of the node. */
         if (leafidx & 1) {
@@ -95,7 +95,7 @@ static void compute_root(const xmss_params *params, unsigned char *root,
     /* The last iteration is exceptional; we do not copy an auth_path node. */
     set_tree_height(addr, params->tree_height - 1);
     leafidx >>= 1;
-    set_tree_index(addr, leafidx);
+    set_tree_index(addr, (uint32_t) leafidx);
     thash_h(params, root, buffer, pub_seed, addr);
 }
 

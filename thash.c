@@ -28,7 +28,7 @@ static int sha256(const unsigned char *in, unsigned long long inlen,
         return -1;
     }
 
-    if (wc_Sha256Update(&sha, in, inlen) != 0) {
+    if (wc_Sha256Update(&sha, in, (word32) inlen) != 0) {
 #if !defined WOLFBOOT_SIGN_XMSS
         fprintf(stderr, "SHA256 Update failed");
 #endif
