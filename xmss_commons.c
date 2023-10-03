@@ -137,18 +137,12 @@ int xmss_core_sign_open(const xmss_params *params,
     return xmssmt_core_sign_open(params, msg, msglen, sig, siglen, pk);
 }
 
-/* Just only allow up to 384 or 512 message length, and use a static array
- * of max message length + 4 * 32 length to do the prefix.
- *
- * The m here should be const.
- *
- * */
 /**
  * Verifies a given message signature pair under a given public key.
  * Note that this assumes a pk without an OID, i.e. [root || PUB_SEED]
  *
  * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
- * is XMSS_SHA256_MAX_MSG_LEN. This is to enable having a manageable small
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to facilitate having a manageable small
  * static array, rather than a variable length array, for the message hash.
  */
 int xmssmt_core_sign_open(const xmss_params *params,
@@ -184,33 +178,28 @@ int xmssmt_core_sign_open(const xmss_params *params,
     }
 #endif
 
-    set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
-    set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
-    set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
-
- /* *msglen = siglen - params->sig_bytes; */
     if (siglen != params->sig_bytes) {
         /* Some inconsistency has happened. */
         return -1;
     }
+
+    set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
+    set_type(ltree_addr, XMSS_ADDR_TYPE_LTREE);
+    set_type(node_addr, XMSS_ADDR_TYPE_HASHTREE);
 
     /* Convert the index bytes from the signature to an integer. */
     idx = bytes_to_ull(sig, params->index_bytes);
 
     /* Put the message all the way at the end of the m buffer, so that we can
      * prepend the required other inputs for the hash function. */
- /* memcpy(msg + params->sig_bytes, sig + params->sig_bytes, *msglen); */
 
     /* This actually worked! */
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
- /* memcpy(m_with_prefix + params->padding_len + 3*params->n, sig + params->sig_bytes, *msglen); */
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, *msglen);
 
     /* Compute the message hash. */
     hash_message(params, mhash, sig + params->index_bytes, pk, idx,
-                 m_with_prefix,
-              /* m + params->sig_bytes - params->padding_len - 3*params->n, */
-                 *msglen);
+                 m_with_prefix, *msglen);
     sig += params->index_bytes + params->n;
 
     /* For each subtree.. */

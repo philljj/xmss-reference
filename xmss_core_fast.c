@@ -603,7 +603,7 @@ int xmss_core_keypair(const xmss_params *params,
  * 2. an updated secret key!
  *
  * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
- * is XMSS_SHA256_MAX_MSG_LEN. This is to enable having a manageable small
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to facilitate having a manageable small
  * static array, rather than a variable length array, for the message hash.
  */
 int xmss_core_sign(const xmss_params *params,
@@ -621,16 +621,16 @@ int xmss_core_sign(const xmss_params *params,
 
     uint16_t i = 0;
 
-    if (*siglen != params->sig_bytes) {
-        /* Some inconsistency has happened. */
-        return -1;
-    }
-
 #if defined WOLFBOOT_SIGN_XMSS
     if (msglen > XMSS_SHA256_MAX_MSG_LEN) {
         return -1;
     }
 #endif
+
+    if (*siglen != params->sig_bytes) {
+        /* Some inconsistency has happened. */
+        return -1;
+    }
 
     // TODO refactor BDS state not to need separate treehash instances
     bds_state state;
@@ -702,16 +702,13 @@ int xmss_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
- /* memcpy(sig + params->sig_bytes, msg, msglen); */
 
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
 
     /* Compute the message hash. */
     hash_message(params, msg_h, R, pub_root, idx,
-                 m_with_prefix,
-              /* sig + params->sig_bytes - params->padding_len - 3*params->n, */
-                 msglen);
+                 m_with_prefix, msglen);
 
     // Start collecting signature
     *siglen = 0;
@@ -835,7 +832,7 @@ int xmssmt_core_keypair(const xmss_params *params,
  * 2. an updated secret key!
  *
  * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
- * is XMSS_SHA256_MAX_MSG_LEN. This is to enable having a manageable small
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to facilitate having a manageable small
  * static array, rather than a variable length array, for the message hash.
  */
 int xmssmt_core_sign(const xmss_params *params,
@@ -851,16 +848,16 @@ int xmssmt_core_sign(const xmss_params *params,
     unsigned char m_with_prefix[msglen + params->padding_len + 3*params->n];
 #endif
 
-    if (*siglen != params->sig_bytes) {
-        /* Some inconsistency has happened. */
-        return -1;
-    }
-
 #if defined WOLFBOOT_SIGN_XMSS
     if (msglen > XMSS_SHA256_MAX_MSG_LEN) {
         return -1;
     }
 #endif
+
+    if (*siglen != params->sig_bytes) {
+        /* Some inconsistency has happened. */
+        return -1;
+    }
 
     uint64_t idx_tree;
     uint32_t idx_leaf;
