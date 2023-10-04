@@ -8,7 +8,7 @@
  * See params.c for how WOTS_SIG_BYTES and releated were calculated.
  *
  * These are to facilitate integration with embedded targets
- * where variable-length arrays cannot be used.
+ * where variable-length arrays cannot be used (e.g. wolfBoot).
  * */
 #define XMSS_SHA256_N                   32
 #define XMSS_SHA256_PADDING_LEN         32

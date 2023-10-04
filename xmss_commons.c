@@ -192,8 +192,6 @@ int xmssmt_core_sign_open(const xmss_params *params,
 
     /* Put the message all the way at the end of the m buffer, so that we can
      * prepend the required other inputs for the hash function. */
-
-    /* This actually worked! */
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, *msglen);
 
@@ -233,14 +231,10 @@ int xmssmt_core_sign_open(const xmss_params *params,
 
     /* Check if the root node equals the root node in the public key. */
     if (memcmp(root, pub_root, params->n)) {
-        /* If not, zero the message */
-     /* memset(msg, 0, *msglen); */
+        /* If not, set message length to zero */
         *msglen = 0;
         return -1;
     }
-
-    /* If verification was successful, copy the message from the signature. */
- /* memcpy(msg, sig, *msglen); */
 
     return 0;
 }

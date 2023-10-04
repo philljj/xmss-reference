@@ -702,7 +702,6 @@ int xmss_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
-
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
 
@@ -937,8 +936,6 @@ int xmssmt_core_sign(const xmss_params *params,
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
- /* memcpy(sig + params->sig_bytes, msg, msglen); */
-
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
 
