@@ -1,11 +1,11 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "params.h"
 #include "utils.h"
 #include "thash.h"
 #include "wots.h"
 #include "hash_address.h"
+#include "params.h"
 
 /**
  * Helper method for pseudorandom key generation.

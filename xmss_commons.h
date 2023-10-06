@@ -2,6 +2,7 @@
 #define XMSS_COMMONS_H
 
 #include <stdint.h>
+#include "params.h"
 
 /**
  * Computes the leaf at a given address. First generates the WOTS key pair,

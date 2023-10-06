@@ -2,6 +2,7 @@
 #define XMSS_THASH_H
 
 #include <stdint.h>
+#include "params.h"
 
 void addr_to_bytes(unsigned char *bytes, const uint32_t addr[8]);
 
