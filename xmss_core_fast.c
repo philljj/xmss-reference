@@ -2,14 +2,15 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "params.h"
 #include "thash.h"
 #include "hash_address.h"
-#include "params.h"
 #include "wots.h"
 #include "utils.h"
 #include "xmss_commons.h"
 #include "xmss_core.h"
 
+#include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>

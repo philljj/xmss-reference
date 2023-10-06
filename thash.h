@@ -1,8 +1,7 @@
-#ifndef XMSS_HASH_H
-#define XMSS_HASH_H
+#ifndef XMSS_THASH_H
+#define XMSS_THASH_H
 
 #include <stdint.h>
-#include "params.h"
 
 void addr_to_bytes(unsigned char *bytes, const uint32_t addr[8]);
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/sha256.h>
 #include <wolfssl/wolfcrypt/sha512.h>
 

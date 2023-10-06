@@ -2,7 +2,6 @@
 #define XMSS_WOTS_H
 
 #include <stdint.h>
-#include "params.h"
 
 /**
  * WOTS key generation. Takes a 32 byte seed for the private key, expands it to
