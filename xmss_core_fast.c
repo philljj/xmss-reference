@@ -10,9 +10,11 @@
 #include "xmss_commons.h"
 #include "xmss_core.h"
 
+/*
 #if !defined WOLFBOOT_SIGN_XMSS
     #include <wolfssl/options.h>
 #endif
+*/
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>

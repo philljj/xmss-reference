@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 
+/*
 #if !defined WOLFBOOT_SIGN_XMSS
     #include <wolfssl/options.h>
 #endif
+*/
 #include <wolfssl/wolfcrypt/sha256.h>
 #include <wolfssl/wolfcrypt/sha512.h>
 
