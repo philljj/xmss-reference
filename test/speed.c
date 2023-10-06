@@ -6,6 +6,9 @@
 #include "../params.h"
 #include "../randombytes.h"
 
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/random.h>
+
 #define XMSS_MLEN 32
 
 #ifndef XMSS_SIGNATURES
@@ -83,10 +86,17 @@ int main()
     /* Make stdout buffer more responsive. */
     setbuf(stdout, NULL);
 
+    WC_RNG      rng;
     xmss_params params;
     uint32_t oid;
     int ret = 0;
     int i;
+
+    ret = wc_InitRng(&rng);
+    if (ret != 0) {
+        printf("error: init rng failed: %d\n", ret);
+        return -1;
+    }
 
     // TODO test more different variants
     if (XMSS_STR_TO_OID(&oid, XMSS_VARIANT)) {
@@ -101,18 +111,18 @@ int main()
 
     unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
-    unsigned char *m = malloc(XMSS_MLEN);
-    unsigned char *sm = malloc(params.sig_bytes + XMSS_MLEN);
-    unsigned char *mout = malloc(params.sig_bytes + XMSS_MLEN);
-    unsigned long long smlen;
-    unsigned long long mlen;
+    unsigned char *msg = malloc(XMSS_MLEN);
+    unsigned char *sig = malloc(params.sig_bytes);
+    unsigned char *msgout = malloc(params.sig_bytes + XMSS_MLEN);
+    unsigned long long siglen;
+    unsigned long long msglen;
 
     unsigned long long t0, t1;
     unsigned long long *t = malloc(sizeof(unsigned long long) * XMSS_SIGNATURES);
     struct timespec start, stop;
     double result;
 
-    randombytes(m, XMSS_MLEN);
+    randombytes(msg, XMSS_MLEN);
 
     printf("Benchmarking variant %s\n", XMSS_VARIANT);
 
@@ -120,7 +130,7 @@ int main()
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
     t0 = cpucycles();
-    XMSS_KEYPAIR(pk, sk, oid);
+    XMSS_KEYPAIR(pk, sk, oid, &rng);
     t1 = cpucycles();
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
     result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
@@ -130,7 +140,7 @@ int main()
 
     for (i = 0; i < XMSS_SIGNATURES; i++) {
         t[i] = cpucycles();
-        XMSS_SIGN(sk, sm, &smlen, m, XMSS_MLEN);
+        XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
     }
     print_results(t, XMSS_SIGNATURES);
 
@@ -138,7 +148,7 @@ int main()
 
     for (i = 0; i < XMSS_SIGNATURES; i++) {
         t[i] = cpucycles();
-        ret |= XMSS_SIGN_OPEN(mout, &mlen, sm, smlen, pk);
+        ret |= XMSS_SIGN_OPEN(msgout, &msglen, sig, siglen, pk);
     }
     print_results(t, XMSS_SIGNATURES);
 
@@ -150,9 +160,11 @@ int main()
     printf("Public key size: %d (%.2f KiB)\n", params.pk_bytes, params.pk_bytes / 1024.0);
     printf("Secret key size: %llu (%.2f KiB)\n", params.sk_bytes, params.sk_bytes / 1024.0);
 
-    free(m);
-    free(sm);
-    free(mout);
+    wc_FreeRng(&rng);
+
+    free(msg);
+    free(sig);
+    free(msgout);
     free(t);
 
     return ret;

@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
 
-    XMSS_KEYPAIR(pk, sk, oid);
+    XMSS_KEYPAIR(pk, sk, oid, rng);
 
     fwrite(pk, 1, XMSS_OID_LEN + params.pk_bytes, stdout);
     fwrite(sk, 1, XMSS_OID_LEN + params.sk_bytes, stdout);

@@ -55,7 +55,7 @@ int main()
 
     randombytes(m, XMSS_MLEN);
 
-    XMSS_KEYPAIR(pk, sk, oid);
+    XMSS_KEYPAIR(pk, sk, oid, rng);
 
     printf("Testing %d %s signatures.. \n", XMSS_SIGNATURES, XMSS_VARIANT);
 
