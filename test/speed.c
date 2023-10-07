@@ -4,9 +4,11 @@
 
 #include "../xmss.h"
 #include "../params.h"
+#include "../xmss_callbacks.h"
 #include "../randombytes.h"
 
 #include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
 #include <wolfssl/wolfcrypt/random.h>
 
 #define XMSS_MLEN 32
@@ -36,6 +38,8 @@
         #define XMSS_VARIANT "XMSS-SHA2_10_256"
     #endif
 #endif
+
+static WC_RNG rng;
 
 static unsigned long long cpucycles(void)
 {
@@ -81,12 +85,58 @@ static void print_results(unsigned long long *t, size_t tlen)
   printf("\n");
 }
 
+static int rng_cb(void * output, size_t length)
+{
+    int ret = 0;
+
+    if (output == NULL) {
+        return -1;
+    }
+
+    if (length == 0) {
+        return 0;
+    }
+
+    ret = wc_RNG_GenerateBlock(&rng, output, (word32) length);
+
+    if (ret) {
+        printf("error: xmss rng_cb failed");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int sha256_cb(const unsigned char *in, unsigned long long inlen,
+                     unsigned char *out)
+{
+    wc_Sha256 sha;
+
+    if (wc_InitSha256_ex(&sha, NULL, INVALID_DEVID) != 0) {
+        printf("SHA256 Init failed");
+        return -1;
+    }
+
+    if (wc_Sha256Update(&sha, in, (word32) inlen) != 0) {
+        printf("SHA256 Update failed");
+        return -1;
+    }
+
+    if (wc_Sha256Final(&sha, out) != 0) {
+        printf("SHA256 Final failed");
+        wc_Sha256Free(&sha);
+        return -1;
+    }
+    wc_Sha256Free(&sha);
+
+    return 0;
+}
+
 int main()
 {
     /* Make stdout buffer more responsive. */
     setbuf(stdout, NULL);
 
-    WC_RNG      rng;
     xmss_params params;
     uint32_t oid;
     int ret = 0;
@@ -95,6 +145,18 @@ int main()
     ret = wc_InitRng(&rng);
     if (ret != 0) {
         printf("error: init rng failed: %d\n", ret);
+        return -1;
+    }
+
+    ret = xmss_set_sha_cb(sha256_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_sha_cb failed");
+        return -1;
+    }
+
+    ret = xmss_set_rng_cb(rng_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_rng_cb failed");
         return -1;
     }
 
@@ -113,7 +175,7 @@ int main()
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
     unsigned char *msg = malloc(XMSS_MLEN);
     unsigned char *sig = malloc(params.sig_bytes);
-    unsigned char *msgout = malloc(params.sig_bytes + XMSS_MLEN);
+    unsigned char *msgout = malloc(XMSS_MLEN);
     unsigned long long siglen;
     unsigned long long msglen;
 
@@ -130,7 +192,7 @@ int main()
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
     t0 = cpucycles();
-    XMSS_KEYPAIR(pk, sk, oid, &rng);
+    XMSS_KEYPAIR(pk, sk, oid);
     t1 = cpucycles();
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
     result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;

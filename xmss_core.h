@@ -19,7 +19,7 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params);
  * Format pk: [root || PUB_SEED], omitting algorithm OID.
  */
 int xmss_core_keypair(const xmss_params *params,
-                      unsigned char *pk, unsigned char *sk, void * rng);
+                      unsigned char *pk, unsigned char *sk);
 
 /**
  * Signs a message. Returns an array containing the signature followed by the
@@ -36,7 +36,7 @@ int xmss_core_sign(const xmss_params *params,
  * Format pk: [root || PUB_SEED] omitting algorithm OID.
  */
 int xmssmt_core_keypair(const xmss_params *params,
-                        unsigned char *pk, unsigned char *sk, void * rng);
+                        unsigned char *pk, unsigned char *sk);
 
 /*
  * Derives a XMSSMT key pair for a given parameter set.

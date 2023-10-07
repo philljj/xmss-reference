@@ -10,16 +10,6 @@
 #include "xmss_commons.h"
 #include "xmss_core.h"
 
-/*
-#if !defined WOLFBOOT_SIGN_XMSS
-    #include <wolfssl/options.h>
-#endif
-*/
-//#include <wolfssl/wolfcrypt/random.h>
-//#include <wolfssl/wolfcrypt/settings.h>
-//#include <wolfssl/wolfcrypt/error-crypt.h>
-//#include <wolfssl/wolfcrypt/logging.h>
-
 #ifndef XMSS_VERIFY_ONLY
 #include "xmss_callbacks.h"
 
@@ -562,8 +552,7 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params)
  * Format pk: [root || PUB_SEED] omitting algo oid.
  */
 int xmss_core_keypair(const xmss_params *params,
-                      unsigned char *pk, unsigned char *sk,
-                      void * rng)
+                      unsigned char *pk, unsigned char *sk)
 {
     uint32_t addr[8] = {0};
     int      ret = 0;
@@ -588,7 +577,6 @@ int xmss_core_keypair(const xmss_params *params,
     //ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes,
     //                           (word32) 2*params->n);
 
-    (void) rng;
     ret = rng_cb(sk + params->index_bytes,  2*params->n);
 
     if (ret != 0) { return -1; }
@@ -788,7 +776,7 @@ int xmss_core_sign(const xmss_params *params,
  * Format pk: [root || PUB_SEED] omitting algo oid.
  */
 int xmssmt_core_keypair(const xmss_params *params,
-                        unsigned char *pk, unsigned char *sk, void * rng)
+                        unsigned char *pk, unsigned char *sk)
 {
     uint32_t        addr[8] = {0};
     unsigned int    i;
@@ -816,7 +804,6 @@ int xmssmt_core_keypair(const xmss_params *params,
     // Init SK_SEED (params->n byte) and SK_PRF (params->n byte)
     //ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes,
     //                           (word32) 2*params->n);
-    (void) rng;
     ret = rng_cb(sk+params->index_bytes, 2*params->n);
 
     if (ret != 0) { return -1; }

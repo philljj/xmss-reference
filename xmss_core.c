@@ -10,11 +10,6 @@
 #include "xmss_commons.h"
 #include "xmss_core.h"
 
-//#include <wolfssl/options.h>
-//#include <wolfssl/wolfcrypt/settings.h>
-//#include <wolfssl/wolfcrypt/error-crypt.h>
-//#include <wolfssl/wolfcrypt/logging.h>
-
 #ifndef XMSS_VERIFY_ONLY
 #include "xmss_callbacks.h"
 
@@ -142,12 +137,12 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params)
  * Format pk: [root || PUB_SEED], omitting algorithm OID.
  */
 int xmss_core_keypair(const xmss_params *params,
-                      unsigned char *pk, unsigned char *sk, void * rng)
+                      unsigned char *pk, unsigned char *sk)
 {
     /* The key generation procedure of XMSS and XMSSMT is exactly the same.
        The only important detail is that the right subtree must be selected;
        this requires us to correctly set the d=1 parameter for XMSS. */
-    return xmssmt_core_keypair(params, pk, sk, rng);
+    return xmssmt_core_keypair(params, pk, sk);
 }
 
 /**
@@ -207,14 +202,12 @@ int xmssmt_core_seed_keypair(const xmss_params *params,
  * Format pk: [root || PUB_SEED] omitting algorithm OID.
  */
 int xmssmt_core_keypair(const xmss_params *params,
-                        unsigned char *pk, unsigned char *sk,
-                        void * rng)
+                        unsigned char *pk, unsigned char *sk)
 {
     unsigned char seed[3 * params->n];
     int ret = 0;
 
     //ret = wc_RNG_GenerateBlock(rng, seed, (word32) sizeof(seed));
-    (void) rng;
     ret = rng_cb(seed, sizeof(seed));
 
     if (ret != 0) {

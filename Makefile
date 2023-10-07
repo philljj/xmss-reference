@@ -83,6 +83,9 @@ ui/xmss_%: ui/%.c $(SOURCES) $(OBJS) $(HEADERS)
 ui/xmssmt_%: ui/%.c $(SOURCES) $(OBJS) $(HEADERS)
 	$(CC) -DXMSSMT $(CFLAGS) -o $@ $(SOURCES) $< $(LDLIBS)
 
+# Only the test xmss executables link with wolfssl.
+# xmss_lib.a does not link with wolfssl, as this would create circular
+# dependencies.
 xmss_lib.a: params.o thash.o hash_address.o wots.o xmss.o xmss_core_fast.o \
             xmss_commons.o utils.o
 	$(AR) rcs $@ $^

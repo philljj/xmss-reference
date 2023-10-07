@@ -2,17 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-/*
-#if !defined WOLFBOOT_SIGN_XMSS
-    #include <wolfssl/options.h>
-#endif
-*/
-
-/*
-#include <wolfssl/wolfcrypt/sha256.h>
-#include <wolfssl/wolfcrypt/sha512.h>
-*/
-
 #include "xmss_callbacks.h"
 #include "hash_address.h"
 #include "utils.h"
@@ -27,71 +16,6 @@ static sha_cb_t sha_cb = NULL;
 #define XMSS_HASH_PADDING_PRF 3
 #define XMSS_HASH_PADDING_PRF_KEYGEN 4
 
-/*
-static int sha256(const unsigned char *in, unsigned long long inlen,
-                  unsigned char *out)
-{
-    wc_Sha256 sha;
-
-    if (wc_InitSha256_ex(&sha, NULL, INVALID_DEVID) != 0) {
-#if !defined WOLFBOOT_SIGN_XMSS
-        fprintf(stderr, "SHA256 Init failed");
-#endif
-        return -1;
-    }
-
-    if (wc_Sha256Update(&sha, in, (word32) inlen) != 0) {
-#if !defined WOLFBOOT_SIGN_XMSS
-        fprintf(stderr, "SHA256 Update failed");
-#endif
-        return -1;
-    }
-
-    if (wc_Sha256Final(&sha, out) != 0) {
-#if !defined WOLFBOOT_SIGN_XMSS
-        fprintf(stderr, "SHA256 Final failed");
-#endif
-        wc_Sha256Free(&sha);
-        return -1;
-    }
-    wc_Sha256Free(&sha);
-
-    return 0;
-}
-*/
-
-static int sha512(const unsigned char *in, unsigned long long inlen,
-                  unsigned char *out)
-{
-    /* Disabling everything but sha256 for now. */
-    (void) in;
-    (void) inlen;
-    (void) out;
-    return -1;
-}
-
-static int shake128(unsigned char *out, unsigned long long outlen,
-                    const unsigned char *in, unsigned long long inlen)
-{
-    /* Disabling everything but sha256 for now. */
-    (void) in;
-    (void) inlen;
-    (void) out;
-    (void) outlen;
-    return -1;
-}
-
-static int shake256(unsigned char *out, unsigned long long outlen,
-                    const unsigned char *in, unsigned long long inlen)
-{
-    /* Disabling everything but sha256 for now. */
-    (void) in;
-    (void) inlen;
-    (void) out;
-    (void) outlen;
-    return -1;
-}
-
 void addr_to_bytes(unsigned char *bytes, const uint32_t addr[8])
 {
     int i;
@@ -105,7 +29,9 @@ int xmss_set_sha_cb(sha_cb_t cb)
     if (cb == NULL) {
         return -1;
     }
+
     sha_cb = cb;
+
     return 0;
 }
 
@@ -113,16 +39,25 @@ static int core_hash(const xmss_params *params,
                      unsigned char *out,
                      const unsigned char *in, unsigned long long inlen)
 {
-    unsigned char buf[64];
-    int           ret = -1;
+    int ret = -1;
+
+    if (sha_cb == NULL) {
+        return -1;
+    }
 
     if (params == NULL || out == NULL || in == NULL) {
         return -1;
     }
 
+    /* The choice of SHA256 and n=32 is set at compile time. */
+    if (params->n != XMSS_SHA256_N || params->func != XMSS_SHA2) {
+        return -1;
+    }
+
+    ret = sha_cb(in, inlen, out);
+
+/*
     if (params->n == 24 && params->func == XMSS_SHA2) {
-     /* ret = sha256(in, inlen, buf); */
-     /* ret = params->sha_cb(in, inlen, out); */
         ret = sha_cb(in, inlen, out);
         memcpy(out, buf, 24);
     }
@@ -130,17 +65,7 @@ static int core_hash(const xmss_params *params,
         ret = shake256(out, 24, in, inlen);
     }   
     else if (params->n == 32 && params->func == XMSS_SHA2) {
-     /* if (params->sha_cb == NULL) { */
-        if (sha_cb == NULL) {
-#if !defined WOLFBOOT_SIGN_XMSS
-            fprintf(stderr, "errorzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz: sha_cb is null\n");
-#endif
-        }
-        else {
-         /* ret = params->sha_cb(in, inlen, out); */
-            ret = sha_cb(in, inlen, out);
-        }
-      /*ret = sha256(in, inlen, out); */
+        ret = sha_cb(in, inlen, out);
     }
     else if (params->n == 32 && params->func == XMSS_SHAKE128) {
         ret = shake128(out, 32, in, inlen);
@@ -157,6 +82,7 @@ static int core_hash(const xmss_params *params,
     else {
         return -1;
     }
+*/
 
     if (ret != 0) { return ret; }
     return 0;

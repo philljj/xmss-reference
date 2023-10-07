@@ -9,8 +9,7 @@
  * Format sk: [OID || (32bit) idx || SK_SEED || SK_PRF || PUB_SEED || root]
  * Format pk: [OID || root || PUB_SEED]
  */
-int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
-                 void * rng);
+int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
 
 /**
  * Signs a message using an XMSS secret key.
@@ -27,8 +26,7 @@ int xmss_sign(unsigned char *sk,
  * Format sk: [OID || (ceil(h/8) bit) idx || SK_SEED || SK_PRF || PUB_SEED || root]
  * Format pk: [OID || root || PUB_SEED]
  */
-int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid,
-                   void * rng);
+int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
 
 /**
  * Signs a message using an XMSSMT secret key.
