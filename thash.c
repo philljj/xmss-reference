@@ -7,13 +7,19 @@
     #include <wolfssl/options.h>
 #endif
 */
+
+/*
 #include <wolfssl/wolfcrypt/sha256.h>
 #include <wolfssl/wolfcrypt/sha512.h>
+*/
 
+#include "xmss_callbacks.h"
 #include "hash_address.h"
 #include "utils.h"
 #include "params.h"
 #include "thash.h"
+
+static sha_cb_t sha_cb = NULL;
 
 #define XMSS_HASH_PADDING_F 0
 #define XMSS_HASH_PADDING_H 1
@@ -21,6 +27,7 @@
 #define XMSS_HASH_PADDING_PRF 3
 #define XMSS_HASH_PADDING_PRF_KEYGEN 4
 
+/*
 static int sha256(const unsigned char *in, unsigned long long inlen,
                   unsigned char *out)
 {
@@ -51,6 +58,7 @@ static int sha256(const unsigned char *in, unsigned long long inlen,
 
     return 0;
 }
+*/
 
 static int sha512(const unsigned char *in, unsigned long long inlen,
                   unsigned char *out)
@@ -92,6 +100,15 @@ void addr_to_bytes(unsigned char *bytes, const uint32_t addr[8])
     }
 }
 
+int xmss_set_sha_cb(sha_cb_t cb)
+{
+    if (cb == NULL) {
+        return -1;
+    }
+    sha_cb = cb;
+    return 0;
+}
+
 static int core_hash(const xmss_params *params,
                      unsigned char *out,
                      const unsigned char *in, unsigned long long inlen)
@@ -104,14 +121,26 @@ static int core_hash(const xmss_params *params,
     }
 
     if (params->n == 24 && params->func == XMSS_SHA2) {
-        ret = sha256(in, inlen, buf);
+     /* ret = sha256(in, inlen, buf); */
+     /* ret = params->sha_cb(in, inlen, out); */
+        ret = sha_cb(in, inlen, out);
         memcpy(out, buf, 24);
     }
     else if (params->n == 24 && params->func == XMSS_SHAKE256) {
         ret = shake256(out, 24, in, inlen);
     }   
     else if (params->n == 32 && params->func == XMSS_SHA2) {
-        ret = sha256(in, inlen, out);
+     /* if (params->sha_cb == NULL) { */
+        if (sha_cb == NULL) {
+#if !defined WOLFBOOT_SIGN_XMSS
+            fprintf(stderr, "errorzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz: sha_cb is null\n");
+#endif
+        }
+        else {
+         /* ret = params->sha_cb(in, inlen, out); */
+            ret = sha_cb(in, inlen, out);
+        }
+      /*ret = sha256(in, inlen, out); */
     }
     else if (params->n == 32 && params->func == XMSS_SHAKE128) {
         ret = shake128(out, 32, in, inlen);

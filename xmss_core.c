@@ -10,10 +10,43 @@
 #include "xmss_commons.h"
 #include "xmss_core.h"
 
-#include <wolfssl/options.h>
-#include <wolfssl/wolfcrypt/settings.h>
-#include <wolfssl/wolfcrypt/error-crypt.h>
-#include <wolfssl/wolfcrypt/logging.h>
+//#include <wolfssl/options.h>
+//#include <wolfssl/wolfcrypt/settings.h>
+//#include <wolfssl/wolfcrypt/error-crypt.h>
+//#include <wolfssl/wolfcrypt/logging.h>
+
+#ifndef XMSS_VERIFY_ONLY
+#include "xmss_callbacks.h"
+
+static rng_cb_t rng_cb = NULL;
+
+typedef struct{
+    unsigned char h;
+    unsigned long next_idx;
+    unsigned char stackusage;
+    unsigned char completed;
+    unsigned char *node;
+} treehash_inst;
+
+typedef struct {
+    unsigned char *stack;
+    unsigned int stackoffset;
+    unsigned char *stacklevels;
+    unsigned char *auth;
+    unsigned char *keep;
+    treehash_inst *treehash;
+    unsigned char *retain;
+    unsigned int next_leaf;
+} bds_state;
+
+int xmss_set_rng_cb(rng_cb_t cb)
+{
+    if (cb == NULL) {
+        return -1;
+    }
+    rng_cb = cb;
+    return 0;
+}
 
 /**
  * For a given leaf index, computes the authentication path and the resulting
@@ -89,6 +122,8 @@ static void treehash(const xmss_params *params,
     memcpy(root, stack, params->n);
 }
 
+#endif /* ifndef XMSS_VERIFY_ONLY */
+
 /**
  * Given a set of parameters, this function returns the size of the secret key.
  * This is implementation specific, as varying choices in tree traversal will
@@ -98,6 +133,8 @@ unsigned long long xmss_xmssmt_core_sk_bytes(const xmss_params *params)
 {
     return params->index_bytes + 4 * params->n;
 }
+
+#ifndef XMSS_VERIFY_ONLY
 
 /*
  * Generates a XMSS key pair for a given parameter set.
@@ -176,10 +213,11 @@ int xmssmt_core_keypair(const xmss_params *params,
     unsigned char seed[3 * params->n];
     int ret = 0;
 
-    ret = wc_RNG_GenerateBlock(rng, seed, (word32) sizeof(seed));
+    //ret = wc_RNG_GenerateBlock(rng, seed, (word32) sizeof(seed));
+    (void) rng;
+    ret = rng_cb(seed, sizeof(seed));
 
     if (ret != 0) {
-        fprintf(stderr, "error: wc_RNG_GenerateBlock failed: %d\n", ret);
         return -1;
     }
 
@@ -283,3 +321,4 @@ int xmssmt_core_sign(const xmss_params *params,
 
     return 0;
 }
+#endif /* ifndef XMSS_VERIFY_ONLY */

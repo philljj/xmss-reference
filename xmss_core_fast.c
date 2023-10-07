@@ -15,12 +15,15 @@
     #include <wolfssl/options.h>
 #endif
 */
-#include <wolfssl/wolfcrypt/random.h>
-#include <wolfssl/wolfcrypt/settings.h>
-#include <wolfssl/wolfcrypt/error-crypt.h>
-#include <wolfssl/wolfcrypt/logging.h>
+//#include <wolfssl/wolfcrypt/random.h>
+//#include <wolfssl/wolfcrypt/settings.h>
+//#include <wolfssl/wolfcrypt/error-crypt.h>
+//#include <wolfssl/wolfcrypt/logging.h>
 
 #ifndef XMSS_VERIFY_ONLY
+#include "xmss_callbacks.h"
+
+static rng_cb_t rng_cb = NULL;
 
 typedef struct{
     unsigned char h;
@@ -40,6 +43,15 @@ typedef struct {
     unsigned char *retain;
     unsigned int next_leaf;
 } bds_state;
+
+int xmss_set_rng_cb(rng_cb_t cb)
+{
+    if (cb == NULL) {
+        return -1;
+    }
+    rng_cb = cb;
+    return 0;
+}
 
 /* These serialization functions provide a transition between the current
    way of storing the state in an exposed struct, and storing it as part of the
@@ -573,14 +585,19 @@ int xmss_core_keypair(const xmss_params *params,
     sk[3] = 0;
 
     // Init SK_SEED (n byte) and SK_PRF (n byte)
-    ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes,
-                               (word32) 2*params->n);
+    //ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes,
+    //                           (word32) 2*params->n);
+
+    (void) rng;
+    ret = rng_cb(sk + params->index_bytes,  2*params->n);
 
     if (ret != 0) { return -1; }
 
     // Init PUB_SEED (n byte)
-    ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes + 3*params->n,
-                               (word32) params->n);
+    //ret = wc_RNG_GenerateBlock(rng, sk + params->index_bytes + 3*params->n,
+    //                           (word32) params->n);
+
+    ret = rng_cb(sk + params->index_bytes + 3*params->n, params->n);
 
     if (ret != 0) { return -1; }
 
@@ -797,14 +814,17 @@ int xmssmt_core_keypair(const xmss_params *params,
         sk[i] = 0;
     }
     // Init SK_SEED (params->n byte) and SK_PRF (params->n byte)
-    ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes,
-                               (word32) 2*params->n);
+    //ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes,
+    //                           (word32) 2*params->n);
+    (void) rng;
+    ret = rng_cb(sk+params->index_bytes, 2*params->n);
 
     if (ret != 0) { return -1; }
 
     // Init PUB_SEED (params->n byte)
-    ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes + 3*params->n,
-                               (word32) params->n);
+    //ret = wc_RNG_GenerateBlock(rng, sk+params->index_bytes + 3*params->n,
+    //                           (word32) params->n);
+    ret = rng_cb(sk+params->index_bytes + 3*params->n, params->n);
 
     if (ret != 0) { return -1; }
 
