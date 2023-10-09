@@ -5,8 +5,13 @@
 
 #include "../xmss.h"
 #include "../params.h"
+#include "../xmss_callbacks.h"
 #include "../randombytes.h"
 #include "../utils.h"
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+#include <wolfssl/wolfcrypt/random.h>
 
 #define XMSS_MLEN 32
 
@@ -32,6 +37,55 @@
     #define XMSS_SIGNATURES (1 << 10)
 #endif
 
+static WC_RNG rng;
+
+static int rng_cb(void * output, size_t length)
+{
+    int ret = 0;
+
+    if (output == NULL) {
+        return -1;
+    }
+
+    if (length == 0) {
+        return 0;
+    }
+
+    ret = wc_RNG_GenerateBlock(&rng, output, (word32) length);
+
+    if (ret) {
+        printf("error: xmss rng_cb failed");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int sha256_cb(const unsigned char *in, unsigned long long inlen,
+                     unsigned char *out)
+{
+    wc_Sha256 sha;
+
+    if (wc_InitSha256_ex(&sha, NULL, INVALID_DEVID) != 0) {
+        printf("SHA256 Init failed");
+        return -1;
+    }
+
+    if (wc_Sha256Update(&sha, in, (word32) inlen) != 0) {
+        printf("SHA256 Update failed");
+        return -1;
+    }
+
+    if (wc_Sha256Final(&sha, out) != 0) {
+        printf("SHA256 Final failed");
+        wc_Sha256Free(&sha);
+        return -1;
+    }
+    wc_Sha256Free(&sha);
+
+    return 0;
+}
+
 int main()
 {
     xmss_params params;
@@ -53,9 +107,27 @@ int main()
     unsigned long long idx;
     unsigned long long j;
 
+    ret = wc_InitRng(&rng);
+    if (ret != 0) {
+        printf("error: init rng failed: %d\n", ret);
+        return -1;
+    }
+
+    ret = xmss_set_sha_cb(sha256_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_sha_cb failed");
+        return -1;
+    }
+
+    ret = xmss_set_rng_cb(rng_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_rng_cb failed");
+        return -1;
+    }
+
     randombytes(m, XMSS_MLEN);
 
-    XMSS_KEYPAIR(pk, sk, oid, rng);
+    XMSS_KEYPAIR(pk, sk, oid);
 
     printf("Testing %d %s signatures.. \n", XMSS_SIGNATURES, XMSS_VARIANT);
 

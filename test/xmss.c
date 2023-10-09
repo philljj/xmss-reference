@@ -4,8 +4,13 @@
 #include <stdlib.h>
 
 #include "../xmss.h"
+#include "../xmss_callbacks.h"
 #include "../params.h"
 #include "../randombytes.h"
+
+#include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/sha256.h>
+#include <wolfssl/wolfcrypt/random.h>
 
 #define XMSS_MLEN 32
 
@@ -29,6 +34,12 @@
     #define XMSS_VARIANT "XMSS-SHA2_10_256"
 #endif
 
+static int rng_cb(void * output, size_t length);
+static int sha256_cb(const unsigned char *in, unsigned long long inlen,
+                     unsigned char *out);
+
+static WC_RNG rng;
+
 int main()
 {
     xmss_params params;
@@ -42,13 +53,30 @@ int main()
 
     unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
-    unsigned char *m = malloc(XMSS_MLEN);
-    unsigned char *sm = malloc(params.sig_bytes + XMSS_MLEN);
-    unsigned char *mout = malloc(params.sig_bytes + XMSS_MLEN);
-    unsigned long long smlen;
-    unsigned long long mlen;
+    unsigned char *msg = malloc(XMSS_MLEN);
+    unsigned char *sig = malloc(params.sig_bytes);
+    unsigned long long siglen = params.sig_bytes;
+    unsigned long long msglen = XMSS_MLEN;
 
-    randombytes(m, XMSS_MLEN);
+    ret = wc_InitRng(&rng);
+    if (ret != 0) {
+        printf("error: init rng failed: %d\n", ret);
+        return -1;
+    }
+
+    ret = xmss_set_sha_cb(sha256_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_sha_cb failed");
+        return -1;
+    }
+
+    ret = xmss_set_rng_cb(rng_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_rng_cb failed");
+        return -1;
+    }
+
+    randombytes(msg, XMSS_MLEN);
 
     XMSS_KEYPAIR(pk, sk, oid);
 
@@ -57,19 +85,19 @@ int main()
     for (i = 0; i < XMSS_SIGNATURES; i++) {
         printf("  - iteration #%d:\n", i);
 
-        XMSS_SIGN(sk, sm, &smlen, m, XMSS_MLEN);
+        XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
 
-        if (smlen != params.sig_bytes + XMSS_MLEN) {
-            printf("  X smlen incorrect [%llu != %u]!\n",
-                   smlen, params.sig_bytes);
+        if (siglen != params.sig_bytes) {
+            printf("  X siglen incorrect [%llu != %u]!\n",
+                   siglen, params.sig_bytes);
             ret = -1;
         }
         else {
-            printf("    smlen as expected [%llu].\n", smlen);
+            printf("    siglen as expected [%llu].\n", siglen);
         }
 
         /* Test if signature is valid. */
-        if (XMSS_SIGN_OPEN(mout, &mlen, sm, smlen, pk)) {
+        if (XMSS_SIGN_OPEN(msg, &msglen, sig, siglen, pk)) {
             printf("  X verification failed!\n");
             ret = -1;
         }
@@ -78,57 +106,96 @@ int main()
         }
 
         /* Test if the correct message was recovered. */
-        if (mlen != XMSS_MLEN) {
-            printf("  X mlen incorrect [%llu != %u]!\n", mlen, XMSS_MLEN);
+        if (msglen != XMSS_MLEN) {
+            printf("  X msglen incorrect [%llu != %u]!\n", msglen, XMSS_MLEN);
             ret = -1;
         }
         else {
-            printf("    mlen as expected [%llu].\n", mlen);
-        }
-        if (memcmp(m, mout, XMSS_MLEN)) {
-            printf("  X output message incorrect!\n");
-            ret = -1;
-        }
-        else {
-            printf("    output message as expected.\n");
+            printf("    msglen as expected [%llu].\n", msglen);
         }
 
         /* Test if flipping bits invalidates the signature (it should). */
 
         /* Flip the first bit of the message. Should invalidate. */
-        sm[smlen - 1] ^= 1;
-        if (!XMSS_SIGN_OPEN(mout, &mlen, sm, smlen, pk)) {
+        sig[siglen - 1] ^= 1;
+        if (!XMSS_SIGN_OPEN(msg, &msglen, sig, siglen, pk)) {
             printf("  X flipping a bit of m DID NOT invalidate signature!\n");
             ret = -1;
         }
         else {
             printf("    flipping a bit of m invalidates signature.\n");
         }
-        sm[smlen - 1] ^= 1;
+        sig[siglen - 1] ^= 1;
 
 #ifdef XMSS_TEST_INVALIDSIG
         int j;
         /* Flip one bit per hash; the signature is almost entirely hashes.
            This also flips a bit in the index, which is also a useful test. */
-        for (j = 0; j < (int)(smlen - XMSS_MLEN); j += params.n) {
-            sm[j] ^= 1;
-            if (!XMSS_SIGN_OPEN(mout, &mlen, sm, smlen, pk)) {
+        for (j = 0; j < (int)(siglen - XMSS_MLEN); j += params.n) {
+            sig[j] ^= 1;
+            if (!XMSS_SIGN_OPEN(msg, &msglen, sig, siglen, pk)) {
                 printf("  X flipping bit %d DID NOT invalidate sig + m!\n", j);
-                sm[j] ^= 1;
+                sig[j] ^= 1;
                 ret = -1;
                 break;
             }
-            sm[j] ^= 1;
+            sig[j] ^= 1;
         }
-        if (j >= (int)(smlen - XMSS_MLEN)) {
+        if (j >= (int)(siglen - XMSS_MLEN)) {
             printf("    changing any signature hash invalidates signature.\n");
         }
 #endif
     }
 
-    free(m);
-    free(sm);
-    free(mout);
+    free(msg);
+    free(sig);
 
     return ret;
+}
+
+static int rng_cb(void * output, size_t length)
+{
+    int ret = 0;
+
+    if (output == NULL) {
+        return -1;
+    }
+
+    if (length == 0) {
+        return 0;
+    }
+
+    ret = wc_RNG_GenerateBlock(&rng, output, (word32) length);
+
+    if (ret) {
+        printf("error: xmss rng_cb failed");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int sha256_cb(const unsigned char *in, unsigned long long inlen,
+                     unsigned char *out)
+{
+    wc_Sha256 sha;
+
+    if (wc_InitSha256_ex(&sha, NULL, INVALID_DEVID) != 0) {
+        printf("SHA256 Init failed");
+        return -1;
+    }
+
+    if (wc_Sha256Update(&sha, in, (word32) inlen) != 0) {
+        printf("SHA256 Update failed");
+        return -1;
+    }
+
+    if (wc_Sha256Final(&sha, out) != 0) {
+        printf("SHA256 Final failed");
+        wc_Sha256Free(&sha);
+        return -1;
+    }
+    wc_Sha256Free(&sha);
+
+    return 0;
 }
