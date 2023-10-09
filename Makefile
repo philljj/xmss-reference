@@ -104,14 +104,4 @@ clean:
 	-$(RM) *.o
 	-$(RM) *.lo
 	-$(RM) xmss_lib.a
-
-#%.o:%.c
-#	@echo "[$(CC)] $@"
-#	$(CC) -DXMSSMT -fPIC $(CFLAGS) -c -o $@ $<
-
-#wolfcrypt_integration: params.lo thash.lo hash_address.lo wots.lo xmss.lo xmss_core_fast.lo xmss_commons.lo utils.lo
-#
-#%.lo:%.c
-#	@echo "[$(CC)] $@"
-##	$(CC) -fPIC $(CFLAGS) -c -o $@ $<
-#	libtool --tag=CC --mode=compile $(CC) $(CFLAGS) -c $<
+	-$(RM) xmss_verify_lib.a
