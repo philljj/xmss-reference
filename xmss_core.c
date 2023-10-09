@@ -219,14 +219,21 @@ int xmssmt_core_keypair(const xmss_params *params,
     return 0;
 }
 
+
 /**
- * Signs a message. Returns an array containing the signature followed by the
- * message and an updated secret key.
+ * Signs a message.
+ * Returns
+ * 1. an array containing the signature AND
+ * 2. an updated secret key!
+ *
+ * Note: in WOLFBOOT_SIGN_XMSS build, the max allowed message length (msglen)
+ * is XMSS_SHA256_MAX_MSG_LEN. This is to facilitate having a manageable small
+ * static array, rather than a variable length array, for the message hash.
  */
 int xmssmt_core_sign(const xmss_params *params,
                      unsigned char *sk,
-                     unsigned char *sm, unsigned long long *smlen,
-                     const unsigned char *m, unsigned long long mlen)
+                     unsigned char *sig, unsigned long long *siglen,
+                     const unsigned char *msg, unsigned long long msglen)
 {
     const unsigned char *sk_seed = sk + params->index_bytes;
     const unsigned char *sk_prf = sk + params->index_bytes + params->n;
@@ -240,13 +247,33 @@ int xmssmt_core_sign(const xmss_params *params,
     unsigned int i;
     uint32_t idx_leaf;
 
+#if defined WOLFBOOT_SIGN_XMSS
+    unsigned char m_with_prefix[XMSS_SHA256_MAX_MSG_HASH_LEN];
+#else
+    unsigned char m_with_prefix[msglen + params->padding_len + 3*params->n];
+#endif
+
+#if defined WOLFBOOT_SIGN_XMSS
+    if (msglen > XMSS_SHA256_MAX_MSG_LEN) {
+        return -1;
+    }
+#endif
+
+    if (*siglen != params->sig_bytes) {
+        /* Some inconsistency has happened. */
+        return -1;
+    }
+
     uint32_t ots_addr[8] = {0};
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
 
     /* Already put the message in the right place, to make it easier to prepend
      * things when computing the hash over the message. */
-    memcpy(sm + params->sig_bytes, m, mlen);
-    *smlen = params->sig_bytes + mlen;
+    memset(m_with_prefix, 0, sizeof(m_with_prefix));
+    memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
+
+ /* memcpy(sig + params->sig_bytes, msg, msglen);
+    *siglen = params->sig_bytes + msglen; */
 
     /* Read and use the current index from the secret key. */
     idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
@@ -273,7 +300,7 @@ int xmssmt_core_sign(const xmss_params *params,
                 return -2; // We already used all one-time keys
     }
     
-    memcpy(sm, sk, params->index_bytes);
+    memcpy(sig, sk, params->index_bytes);
 
     /*************************************************************************
      * THIS IS WHERE PRODUCTION IMPLEMENTATIONS WOULD UPDATE THE SECRET KEY. *
@@ -283,13 +310,14 @@ int xmssmt_core_sign(const xmss_params *params,
 
     /* Compute the digest randomization value. */
     ull_to_bytes(idx_bytes_32, 32, idx);
-    prf(params, sm + params->index_bytes, idx_bytes_32, sk_prf);
+    prf(params, sig + params->index_bytes, idx_bytes_32, sk_prf);
 
     /* Compute the message hash. */
-    hash_message(params, mhash, sm + params->index_bytes, pub_root, idx,
-                 sm + params->sig_bytes - params->padding_len - 3*params->n,
-                 mlen);
-    sm += params->index_bytes + params->n;
+    hash_message(params, mhash, sig + params->index_bytes, pub_root, idx,
+                 m_with_prefix,
+              /* sig + params->sig_bytes - params->padding_len - 3*params->n, */
+                 msglen);
+    sig += params->index_bytes + params->n;
 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
 
@@ -304,12 +332,12 @@ int xmssmt_core_sign(const xmss_params *params,
         /* Compute a WOTS signature. */
         /* Initially, root = mhash, but on subsequent iterations it is the root
            of the subtree below the currently processed subtree. */
-        wots_sign(params, sm, root, sk_seed, pub_seed, ots_addr);
-        sm += params->wots_sig_bytes;
+        wots_sign(params, sig, root, sk_seed, pub_seed, ots_addr);
+        sig += params->wots_sig_bytes;
 
         /* Compute the authentication path for the used WOTS leaf. */
-        treehash(params, root, sm, sk_seed, pub_seed, idx_leaf, ots_addr);
-        sm += params->tree_height*params->n;
+        treehash(params, root, sig, sk_seed, pub_seed, idx_leaf, ots_addr);
+        sig += params->tree_height*params->n;
     }
 
     return 0;

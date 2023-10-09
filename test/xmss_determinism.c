@@ -54,10 +54,10 @@ int main()
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
     unsigned char sk2[XMSS_OID_LEN + params.sk_bytes];
 
-    unsigned char m[MLEN];
-    unsigned char sm[params.sig_bytes + MLEN];
-    unsigned char sm2[params.sig_bytes + MLEN];
-    unsigned long long smlen;
+    unsigned char msg[MLEN];
+    unsigned char sig[params.sig_bytes];
+    unsigned char sig2[params.sig_bytes];
+    unsigned long long siglen = params.sig_bytes;
 
     xmss_keypair(pk, sk, oid);
 
@@ -65,16 +65,16 @@ int main()
     memcpy(sk2, sk, XMSS_OID_LEN + params.sk_bytes);
 
     /* Sign a random message (but twice the same one). */
-    randombytes(m, MLEN);
+    randombytes(msg, MLEN);
 
-    xmss_sign(sk, sm, &smlen, m, MLEN);
-    xmss_sign(sk2, sm2, &smlen, m, MLEN);
+    xmss_sign(sk, sig, &siglen, msg, MLEN);
+    xmss_sign(sk2, sig2, &siglen, msg, MLEN);
 
     /* Compare signature, and, if applicable, print the differences. */
-    if (memcmp(sm, sm2, params.sig_bytes + MLEN)) {
+    if (memcmp(sig, sig2, params.sig_bytes)) {
         fprintf(stderr, "signatures differ!\n");
         for (i = 0; i < params.sig_bytes + MLEN; i++) {
-            fprintf(stderr, (sm[i] != sm2[i] ? "x" : "."));
+            fprintf(stderr, (sig[i] != sig2[i] ? "x" : "."));
         }
         fprintf(stderr, "\n");
         return -1;

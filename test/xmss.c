@@ -85,7 +85,10 @@ int main()
     for (i = 0; i < XMSS_SIGNATURES; i++) {
         printf("  - iteration #%d:\n", i);
 
-        XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
+        if (XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN)) {
+            printf("  sign failed!\n");
+            ret = -1;
+        }
 
         if (siglen != params.sig_bytes) {
             printf("  X siglen incorrect [%llu != %u]!\n",
@@ -117,7 +120,7 @@ int main()
         /* Test if flipping bits invalidates the signature (it should). */
 
         /* Flip the first bit of the message. Should invalidate. */
-        sig[siglen - 1] ^= 1;
+        msg[0] ^= 1;
         if (!XMSS_SIGN_OPEN(msg, &msglen, sig, siglen, pk)) {
             printf("  X flipping a bit of m DID NOT invalidate signature!\n");
             ret = -1;
@@ -125,13 +128,13 @@ int main()
         else {
             printf("    flipping a bit of m invalidates signature.\n");
         }
-        sig[siglen - 1] ^= 1;
+        msg[0] ^= 1;
 
 #ifdef XMSS_TEST_INVALIDSIG
         int j;
         /* Flip one bit per hash; the signature is almost entirely hashes.
            This also flips a bit in the index, which is also a useful test. */
-        for (j = 0; j < (int)(siglen - XMSS_MLEN); j += params.n) {
+        for (j = 0; j < (int)(siglen); j += params.n) {
             sig[j] ^= 1;
             if (!XMSS_SIGN_OPEN(msg, &msglen, sig, siglen, pk)) {
                 printf("  X flipping bit %d DID NOT invalidate sig + m!\n", j);
@@ -141,7 +144,7 @@ int main()
             }
             sig[j] ^= 1;
         }
-        if (j >= (int)(siglen - XMSS_MLEN)) {
+        if (j >= (int)(siglen)) {
             printf("    changing any signature hash invalidates signature.\n");
         }
 #endif
