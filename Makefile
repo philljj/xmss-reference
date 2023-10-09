@@ -1,5 +1,6 @@
 CC = /usr/bin/gcc
-CFLAGS = -Wall -g -O3 -Wextra -Wpedantic
+CFLAGS = -Wall -O2 -Wextra -Wpedantic
+VERIFY_CFLAGS = -DXMSS_VERIFY_ONLY -Wall -O2 -Wextra -Wpedantic
 LDLIBS = -lwolfssl
 
 SOURCES = params.c thash.c fips202.c hash_address.c randombytes.c wots.c xmss.c xmss_core.c xmss_commons.c utils.c
@@ -87,6 +88,12 @@ ui/xmssmt_%: ui/%.c $(SOURCES) $(OBJS) $(HEADERS)
 # xmss_lib.a does not link with wolfssl, as this would create circular
 # dependencies.
 xmss_lib.a: params.o thash.o hash_address.o wots.o xmss.o xmss_core_fast.o \
+            xmss_commons.o utils.o
+	$(AR) rcs $@ $^
+
+xmss_verify_lib.a: CFLAGS += -DXMSS_VERIFY_ONLY
+
+xmss_verify_lib.a: params.o thash.o hash_address.o wots.o xmss.o xmss_core_fast.o \
             xmss_commons.o utils.o
 	$(AR) rcs $@ $^
 
