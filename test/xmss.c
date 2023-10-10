@@ -55,8 +55,6 @@ int main()
     unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
     unsigned char *msg = malloc(XMSS_MLEN);
     unsigned char *sig = malloc(params.sig_bytes);
-    unsigned long long siglen = params.sig_bytes;
-    unsigned long long msglen = XMSS_MLEN;
 
     ret = wc_InitRng(&rng);
     if (ret != 0) {
@@ -83,6 +81,9 @@ int main()
     printf("Testing %d %s signatures.. \n", XMSS_SIGNATURES, XMSS_VARIANT);
 
     for (i = 0; i < XMSS_SIGNATURES; i++) {
+        unsigned long long siglen = params.sig_bytes;
+        unsigned long long msglen = XMSS_MLEN;
+
         printf("  - iteration #%d:\n", i);
 
         if (XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN)) {

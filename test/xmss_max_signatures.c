@@ -37,7 +37,96 @@
     #define XMSS_SIGNATURES (1 << 10)
 #endif
 
+static int rng_cb(void * output, size_t length);
+static int sha256_cb(const unsigned char *in, unsigned long long inlen,
+                     unsigned char *out);
+
 static WC_RNG rng;
+
+int main()
+{
+    xmss_params params;
+    uint32_t oid;
+    int ret = 0;
+    int return_code = 0;
+    int i;
+
+    // TODO test more different variants
+    XMSS_STR_TO_OID(&oid, XMSS_VARIANT);
+    XMSS_PARSE_OID(&params, oid);
+
+    unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
+    unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
+    unsigned char *msg = malloc(XMSS_MLEN);
+    unsigned char *sig = malloc(params.sig_bytes);
+    unsigned long long siglen = params.sig_bytes;
+    unsigned long long idx;
+    unsigned long long j;
+
+    ret = wc_InitRng(&rng);
+    if (ret != 0) {
+        printf("error: init rng failed: %d\n", ret);
+        return -1;
+    }
+
+    ret = xmss_set_sha_cb(sha256_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_sha_cb failed");
+        return -1;
+    }
+
+    ret = xmss_set_rng_cb(rng_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_rng_cb failed");
+        return -1;
+    }
+
+    randombytes(msg, XMSS_MLEN);
+
+    XMSS_KEYPAIR(pk, sk, oid);
+
+    printf("Testing %d %s signatures.. \n", XMSS_SIGNATURES, XMSS_VARIANT);
+
+    for (i = 0; i < XMSS_SIGNATURES; i++) {
+        if( (i & 1023) == 0)
+            printf("  - iteration #%d:\n", i);
+
+        return_code = XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
+
+        if (return_code != 0) {
+            printf("  Error! Return code was %d\n",return_code);
+            ret = -1;
+        }
+    }
+    if(ret == 0)
+            printf("As expected, return code was 0\n");
+    for (; i < (XMSS_SIGNATURES) + 2; i++) {
+        printf("  - iteration #%d:\n", i);
+
+        return_code = XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
+
+        if (return_code == 0) {
+                printf("  Error! Return code was %d\n",return_code);
+                ret = -1;
+        }
+        else {
+                printf("Return code as expected [%d].\n", return_code);
+        }
+        
+        idx = (unsigned long)bytes_to_ull(sk, params.index_bytes);
+        printf("Index: %llu\n", idx);
+        printf("Secret key: %llu\n", idx);
+        for (j = 0; j < XMSS_OID_LEN + params.sk_bytes;j++)
+                printf("%d ", sk[j]);
+        
+        printf("\n");
+    }
+    
+    free(msg);
+    free(sig);
+
+    return ret;
+}
 
 static int rng_cb(void * output, size_t length)
 {
@@ -84,91 +173,4 @@ static int sha256_cb(const unsigned char *in, unsigned long long inlen,
     wc_Sha256Free(&sha);
 
     return 0;
-}
-
-int main()
-{
-    xmss_params params;
-    uint32_t oid;
-    int ret = 0;
-    int return_code = 0;
-    int i;
-
-    // TODO test more different variants
-    XMSS_STR_TO_OID(&oid, XMSS_VARIANT);
-    XMSS_PARSE_OID(&params, oid);
-
-    unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
-    unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
-    unsigned char *m = malloc(XMSS_MLEN);
-    unsigned char *sm = malloc(params.sig_bytes + XMSS_MLEN);
-    unsigned char *mout = malloc(params.sig_bytes + XMSS_MLEN);
-    unsigned long long smlen;
-    unsigned long long idx;
-    unsigned long long j;
-
-    ret = wc_InitRng(&rng);
-    if (ret != 0) {
-        printf("error: init rng failed: %d\n", ret);
-        return -1;
-    }
-
-    ret = xmss_set_sha_cb(sha256_cb);
-    if (ret != 0) {
-        printf("error: xmss_set_sha_cb failed");
-        return -1;
-    }
-
-    ret = xmss_set_rng_cb(rng_cb);
-    if (ret != 0) {
-        printf("error: xmss_set_rng_cb failed");
-        return -1;
-    }
-
-    randombytes(m, XMSS_MLEN);
-
-    XMSS_KEYPAIR(pk, sk, oid);
-
-    printf("Testing %d %s signatures.. \n", XMSS_SIGNATURES, XMSS_VARIANT);
-
-    for (i = 0; i < XMSS_SIGNATURES; i++) {
-        if( (i & 1023) == 0)
-            printf("  - iteration #%d:\n", i);
-
-        return_code = XMSS_SIGN(sk, sm, &smlen, m, XMSS_MLEN);
-
-        if (return_code != 0) {
-            printf("  Error! Return code was %d\n",return_code);
-            ret = -1;
-        }
-    }
-    if(ret == 0)
-            printf("As expected, return code was 0\n");
-    for (; i < (XMSS_SIGNATURES) + 2; i++) {
-        printf("  - iteration #%d:\n", i);
-
-        return_code = XMSS_SIGN(sk, sm, &smlen, m, XMSS_MLEN);
-
-        if (return_code == 0) {
-                printf("  Error! Return code was %d\n",return_code);
-                ret = -1;
-        }
-        else {
-                printf("Return code as expected [%d].\n", return_code);
-        }
-        
-        idx = (unsigned long)bytes_to_ull(sk, params.index_bytes);
-        printf("Index: %llu\n", idx);
-        printf("Secret key: %llu\n", idx);
-        for (j = 0; j < XMSS_OID_LEN + params.sk_bytes;j++)
-                printf("%d ", sk[j]);
-        
-        printf("\n");
-    }
-    
-    free(m);
-    free(sm);
-    free(mout);
-
-    return ret;
 }
