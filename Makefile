@@ -2,6 +2,9 @@ CC = /usr/bin/gcc
 CFLAGS = -Wall -O2 -Wextra -Wpedantic
 VERIFY_CFLAGS = -DXMSS_VERIFY_ONLY -Wall -O2 -Wextra -Wpedantic
 LDLIBS = -lwolfssl
+# Alternate build settings to check for memory issues.
+#CC = clang
+#CFLAGS = -g -fsanitize=memory -Wall -Wextra -Wpedantic
 
 SOURCES = params.c thash.c hash_address.c randombytes.c wots.c xmss.c xmss_core.c xmss_commons.c utils.c
 HEADERS = params.h thash.h hash_address.h randombytes.h wots.h xmss.h xmss_core.h xmss_commons.h utils.h
