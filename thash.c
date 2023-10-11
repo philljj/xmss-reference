@@ -8,7 +8,11 @@
 #include "params.h"
 #include "thash.h"
 
+#if defined WOLFBOOT_SIGN_XMSS
 static sha_cb_t sha_cb = NULL;
+#else
+static __thread sha_cb_t sha_cb = NULL;
+#endif
 
 #define XMSS_HASH_PADDING_F 0
 #define XMSS_HASH_PADDING_H 1
