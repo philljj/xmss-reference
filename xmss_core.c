@@ -272,9 +272,6 @@ int xmssmt_core_sign(const xmss_params *params,
     memset(m_with_prefix, 0, sizeof(m_with_prefix));
     memcpy(m_with_prefix + params->padding_len + 3*params->n, msg, msglen);
 
- /* memcpy(sig + params->sig_bytes, msg, msglen);
-    *siglen = params->sig_bytes + msglen; */
-
     /* Read and use the current index from the secret key. */
     idx = (unsigned long)bytes_to_ull(sk, params->index_bytes);
     
@@ -314,9 +311,7 @@ int xmssmt_core_sign(const xmss_params *params,
 
     /* Compute the message hash. */
     hash_message(params, mhash, sig + params->index_bytes, pub_root, idx,
-                 m_with_prefix,
-              /* sig + params->sig_bytes - params->padding_len - 3*params->n, */
-                 msglen);
+                 m_with_prefix, msglen);
     sig += params->index_bytes + params->n;
 
     set_type(ots_addr, XMSS_ADDR_TYPE_OTS);
