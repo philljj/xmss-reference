@@ -18,8 +18,8 @@ int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
  * 2. an updated secret key!
  */
 int xmss_sign(unsigned char *sk,
-              unsigned char *sm, unsigned long long *smlen,
-              const unsigned char *m, unsigned long long mlen);
+              unsigned char *sig, unsigned long long *siglen,
+              const unsigned char *msg, unsigned long long msglen);
 
 /*
  * Generates a XMSSMT key pair for a given parameter set.
@@ -35,29 +35,29 @@ int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
  * 2. an updated secret key!
  */
 int xmssmt_sign(unsigned char *sk,
-                unsigned char *sm, unsigned long long *smlen,
-                const unsigned char *m, unsigned long long mlen);
+                unsigned char *sig, unsigned long long *siglen,
+                const unsigned char *msg, unsigned long long msglen);
 #endif /* ifndef XMSS_VERIFY_ONLY */
 
 /**
- * Verifies a given message signature pair using a given public key.
+ * Verifies a given signature using a given public key.
  *
- * Note: m and mlen are pure outputs which carry the message in case
- * verification succeeds. The (input) message is assumed to be contained in sm
- * which has the form [signature || message].
+ * - msg is the input message of length msglen.
+ * - sig is the signature to verify, of length siglen.
+ * - pk is the public key without an OID.
  */
 int xmss_sign_open(const unsigned char *msg, unsigned long long *msglen,
-                   const unsigned char *sm, unsigned long long smlen,
+                   const unsigned char *sig, unsigned long long siglen,
                    const unsigned char *pk);
 
 /**
- * Verifies a given message signature pair using a given public key.
+ * Verifies a given signature using a given public key.
  *
- * Note: m and mlen are pure outputs which carry the message in case
- * verification succeeds. The (input) message is assumed to be contained in sm
- * which has the form [signature || message].
+ * - msg is the input message of length msglen.
+ * - sig is the signature to verify, of length siglen.
+ * - pk is the public key without an OID.
  */
 int xmssmt_sign_open(const unsigned char *msg, unsigned long long *msglen,
-                     const unsigned char *sm, unsigned long long smlen,
+                     const unsigned char *sig, unsigned long long siglen,
                      const unsigned char *pk);
 #endif

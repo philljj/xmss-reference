@@ -28,8 +28,8 @@ int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
 }
 
 int xmss_sign(unsigned char *sk,
-              unsigned char *sm, unsigned long long *smlen,
-              const unsigned char *m, unsigned long long mlen)
+              unsigned char *sig, unsigned long long *siglen,
+              const unsigned char *msg, unsigned long long msglen)
 {
     xmss_params params;
     uint32_t oid = 0;
@@ -41,7 +41,7 @@ int xmss_sign(unsigned char *sk,
     if (xmss_parse_oid(&params, oid)) {
         return -1;
     }
-    return xmss_core_sign(&params, sk + XMSS_OID_LEN, sm, smlen, m, mlen);
+    return xmss_core_sign(&params, sk + XMSS_OID_LEN, sig, siglen, msg, msglen);
 }
 
 int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
@@ -78,7 +78,7 @@ int xmssmt_sign(unsigned char *sk,
 #endif /* ifndef XMSS_VERIFY_ONLY */
 
 int xmss_sign_open(const unsigned char *msg, unsigned long long *msglen,
-                   const unsigned char *sm, unsigned long long smlen,
+                   const unsigned char *sig, unsigned long long siglen,
                    const unsigned char *pk)
 {
     xmss_params params;
@@ -91,11 +91,11 @@ int xmss_sign_open(const unsigned char *msg, unsigned long long *msglen,
     if (xmss_parse_oid(&params, oid)) {
         return -1;
     }
-    return xmss_core_sign_open(&params, msg, msglen, sm, smlen, pk + XMSS_OID_LEN);
+    return xmss_core_sign_open(&params, msg, msglen, sig, siglen, pk + XMSS_OID_LEN);
 }
 
 int xmssmt_sign_open(const unsigned char *msg, unsigned long long *msglen,
-                     const unsigned char *sm, unsigned long long smlen,
+                     const unsigned char *sig, unsigned long long siglen,
                      const unsigned char *pk)
 {
     xmss_params params;
@@ -108,5 +108,5 @@ int xmssmt_sign_open(const unsigned char *msg, unsigned long long *msglen,
     if (xmssmt_parse_oid(&params, oid)) {
         return -1;
     }
-    return xmssmt_core_sign_open(&params, msg, msglen, sm, smlen, pk + XMSS_OID_LEN);
+    return xmssmt_core_sign_open(&params, msg, msglen, sig, siglen, pk + XMSS_OID_LEN);
 }
