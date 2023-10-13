@@ -29,7 +29,7 @@ following changes have been made:
   avoid potential confusion with similarly named targets in wolfBoot.
 - The `Makefile` has been updated to build static libraries `xmss_lib.a`,
   and `xmss_verify_lib.a`. The `xmss_verify_lib.a` is a verify-only build,
-  with an additional define `XMSS_VERIFY_ONLY` that guards out any keygen
+  with an additional define `XMSS_VERIFY_ONLY` that guards out keygen
   and signing functions.
 - The `Makefile` has been updated to link against wolfSSL `LDLIBS = -lwolfssl`
   for the building of the tests in `test/`. The linking is *not* done for
@@ -37,5 +37,6 @@ following changes have been made:
   wolfssl to build the static libs is not necessary because the RNG and SHA
   operations are provided by setting callbacks.
 - The tests in `test/` have been updated to reflect these changes.
-- Some minor changes to fix warnings from clang `-fsanitize=memory`.
-- Some minor cosmetic changes (cleanup trailing space, long lines, etc).
+- Some minor changes were made to fix warnings from clang `-fsanitize=memory`.
+- Some minor cosmetic changes were made (cleanup trailing space, wrap long lines,
+  etc).
