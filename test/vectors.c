@@ -1,4 +1,4 @@
-/* 
+/*
  * Generate intermediate test vectors useful to test implementations.
  */
 
@@ -111,7 +111,7 @@ void vectors_wots(uint32_t oid) {
     printf("\n");
 }
 
-int main() {
+int main(void) {
     for (uint32_t oid = 1; oid <= 0x15; oid += 3) {
         vectors_wots(oid);
     }

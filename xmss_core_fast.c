@@ -654,18 +654,18 @@ int xmss_core_sign(const xmss_params *params,
     unsigned long idx = ((unsigned long)sk[0] << 24) |
                         ((unsigned long)sk[1] << 16) |
                         ((unsigned long)sk[2] <<  8) | sk[3];
-    
+
     /* Check if we can still sign with this sk.
      * If not, return -2
-     * 
-     * If this is the last possible signature (because the max index value 
-     * is reached), production implementations should delete the secret key 
+     *
+     * If this is the last possible signature (because the max index value
+     * is reached), production implementations should delete the secret key
      * to prevent accidental further use.
-     * 
-     * For the case of total tree height of 64 we do not use the last signature 
-     * to be on the safe side (there is no index value left to indicate that the 
+     *
+     * For the case of total tree height of 64 we do not use the last signature
+     * to be on the safe side (there is no index value left to indicate that the
      * key is finished, hence external handling would be necessary)
-     */ 
+     */
     if (idx >= ((1ULL << params->full_height) - 1)) {
         // Delete secret key here. We only do this in memory, production code
         // has to make sure that this happens on disk.
@@ -673,10 +673,10 @@ int xmss_core_sign(const xmss_params *params,
         memset(sk + params->index_bytes, 0, (params->sk_bytes - params->index_bytes));
         if (idx > ((1ULL << params->full_height) - 1))
             return -2; // We already used all one-time keys
-        if ((params->full_height == 64) && (idx == ((1ULL << params->full_height) - 1))) 
+        if ((params->full_height == 64) && (idx == ((1ULL << params->full_height) - 1)))
                 return -2; // We already used all one-time keys
     }
-    
+
     unsigned char sk_seed[params->n];
     memcpy(sk_seed, sk + params->index_bytes, params->n);
     unsigned char sk_prf[params->n];
@@ -905,15 +905,15 @@ int xmssmt_core_sign(const xmss_params *params,
 
     /* Check if we can still sign with this sk.
      * If not, return -2
-     * 
-     * If this is the last possible signature (because the max index value 
-     * is reached), production implementations should delete the secret key 
+     *
+     * If this is the last possible signature (because the max index value
+     * is reached), production implementations should delete the secret key
      * to prevent accidental further use.
-     * 
-     * For the case of total tree height of 64 we do not use the last signature 
-     * to be on the safe side (there is no index value left to indicate that the 
+     *
+     * For the case of total tree height of 64 we do not use the last signature
+     * to be on the safe side (there is no index value left to indicate that the
      * key is finished, hence external handling would be necessary)
-     */ 
+     */
     if (idx >= ((1ULL << params->full_height) - 1)) {
         // Delete secret key here. We only do this in memory, production code
         // has to make sure that this happens on disk.
@@ -921,10 +921,10 @@ int xmssmt_core_sign(const xmss_params *params,
         memset(sk + params->index_bytes, 0, (params->sk_bytes - params->index_bytes));
         if (idx > ((1ULL << params->full_height) - 1))
             return -2; // We already used all one-time keys
-        if ((params->full_height == 64) && (idx == ((1ULL << params->full_height) - 1))) 
+        if ((params->full_height == 64) && (idx == ((1ULL << params->full_height) - 1)))
                 return -2; // We already used all one-time keys
     }
-    
+
     memcpy(sk_seed, sk+params->index_bytes, params->n);
     memcpy(sk_prf, sk+params->index_bytes+params->n, params->n);
     memcpy(pub_seed, sk+params->index_bytes+3*params->n, params->n);

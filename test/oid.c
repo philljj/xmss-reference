@@ -22,7 +22,7 @@
         return -1;\
     }
 
-int main()
+int main(void)
 {
     uint32_t oid;
     xmss_params params;

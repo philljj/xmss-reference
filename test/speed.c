@@ -132,7 +132,7 @@ static int sha256_cb(const unsigned char *in, unsigned long long inlen,
     return 0;
 }
 
-int main()
+int main(void)
 {
     /* Make stdout buffer more responsive. */
     setbuf(stdout, NULL);

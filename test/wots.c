@@ -17,7 +17,7 @@ static int sha256_cb(const unsigned char *in, unsigned long long inlen,
 
 static WC_RNG rng;
 
-int main()
+int main(void)
 {
     xmss_params params;
     // TODO test more different OIDs

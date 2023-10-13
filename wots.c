@@ -12,7 +12,7 @@
  * Expands an n-byte array into a len*n byte array using the `prf_keygen` function.
  */
 static void expand_seed(const xmss_params *params,
-                        unsigned char *outseeds, const unsigned char *inseed, 
+                        unsigned char *outseeds, const unsigned char *inseed,
                         const unsigned char *pub_seed, uint32_t addr[8])
 {
     uint32_t i;

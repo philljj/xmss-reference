@@ -43,7 +43,7 @@ static int sha256_cb(const unsigned char *in, unsigned long long inlen,
 
 static WC_RNG rng;
 
-int main()
+int main(void)
 {
     xmss_params params;
     uint32_t oid;
@@ -112,16 +112,16 @@ int main()
         else {
                 printf("Return code as expected [%d].\n", return_code);
         }
-        
+
         idx = (unsigned long)bytes_to_ull(sk, params.index_bytes);
         printf("Index: %llu\n", idx);
         printf("Secret key: %llu\n", idx);
         for (j = 0; j < XMSS_OID_LEN + params.sk_bytes;j++)
                 printf("%d ", sk[j]);
-        
+
         printf("\n");
     }
-    
+
     free(msg);
     free(sig);
 
