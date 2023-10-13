@@ -8,11 +8,7 @@
 #include "params.h"
 #include "thash.h"
 
-#if defined WOLFBOOT_SIGN_XMSS
 static sha_cb_t sha_cb = NULL;
-#else
-static __thread sha_cb_t sha_cb = NULL;
-#endif
 
 #define XMSS_HASH_PADDING_F 0
 #define XMSS_HASH_PADDING_H 1
@@ -59,34 +55,6 @@ static int core_hash(const xmss_params *params,
     }
 
     ret = sha_cb(in, inlen, out);
-
-/*
-    if (params->n == 24 && params->func == XMSS_SHA2) {
-        ret = sha_cb(in, inlen, out);
-        memcpy(out, buf, 24);
-    }
-    else if (params->n == 24 && params->func == XMSS_SHAKE256) {
-        ret = shake256(out, 24, in, inlen);
-    }   
-    else if (params->n == 32 && params->func == XMSS_SHA2) {
-        ret = sha_cb(in, inlen, out);
-    }
-    else if (params->n == 32 && params->func == XMSS_SHAKE128) {
-        ret = shake128(out, 32, in, inlen);
-    }
-    else if (params->n == 32 && params->func == XMSS_SHAKE256) {
-        ret = shake256(out, 32, in, inlen);
-    }
-    else if (params->n == 64 && params->func == XMSS_SHA2) {
-        ret = sha512(in, inlen, out);
-    }
-    else if (params->n == 64 && params->func == XMSS_SHAKE256) {
-        ret = shake256(out, 64, in, inlen);
-    }
-    else {
-        return -1;
-    }
-*/
 
     if (ret != 0) { return ret; }
     return 0;
