@@ -39,6 +39,10 @@
     #endif
 #endif
 
+static int rng_cb(void * output, size_t length);
+static int sha256_cb(const unsigned char *in, unsigned long long inlen,
+                     unsigned char *out);
+
 static WC_RNG rng;
 
 static unsigned long long cpucycles(void)
@@ -83,6 +87,105 @@ static void print_results(unsigned long long *t, size_t tlen)
   printf("\tmedian        : %llu cycles\n", median(t, tlen));
   printf("\taverage       : %llu cycles\n", average(t, tlen-1));
   printf("\n");
+}
+
+int main(void)
+{
+    /* Make stdout buffer more responsive. */
+    setbuf(stdout, NULL);
+
+    xmss_params params;
+    uint32_t oid;
+    int ret = 0;
+    int i;
+
+    ret = wc_InitRng(&rng);
+    if (ret != 0) {
+        printf("error: init rng failed: %d\n", ret);
+        return -1;
+    }
+
+    ret = xmss_set_sha_cb(sha256_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_sha_cb failed");
+        return -1;
+    }
+
+    ret = xmss_set_rng_cb(rng_cb);
+    if (ret != 0) {
+        printf("error: xmss_set_rng_cb failed");
+        return -1;
+    }
+
+    // TODO test more different variants
+    if (XMSS_STR_TO_OID(&oid, XMSS_VARIANT)) {
+#ifdef XMSSMT
+        printf("XMSSMT variant %s not recognized!\n", XMSS_VARIANT);
+#else
+        printf("XMSS variant %s not recognized!\n", XMSS_VARIANT);
+#endif
+        return -1;
+    }
+    XMSS_PARSE_OID(&params, oid);
+
+    unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
+    unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
+    unsigned char *msg = malloc(XMSS_MLEN);
+    unsigned char *sig = malloc(params.sig_bytes);
+    unsigned long long siglen = params.sig_bytes;
+
+    unsigned long long t0, t1;
+    unsigned long long *t = malloc(sizeof(unsigned long long) * XMSS_SIGNATURES);
+    struct timespec start, stop;
+    double result;
+
+    randombytes(msg, XMSS_MLEN);
+
+    printf("Benchmarking variant %s\n", XMSS_VARIANT);
+
+    printf("Generating keypair.. ");
+
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    t0 = cpucycles();
+    XMSS_KEYPAIR(pk, sk, oid);
+    t1 = cpucycles();
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+    result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
+    printf("took %lf us (%.2lf sec), %llu cycles\n", result, result / 1e6, t1 - t0);
+
+    printf("Creating %d signatures..\n", XMSS_SIGNATURES);
+
+    for (i = 0; i < XMSS_SIGNATURES; i++) {
+        t[i] = cpucycles();
+        XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
+    }
+    print_results(t, XMSS_SIGNATURES);
+
+    printf("Verifying %d signatures..\n", XMSS_SIGNATURES);
+
+    for (i = 0; i < XMSS_SIGNATURES; i++) {
+        unsigned long long msglen = XMSS_MLEN;
+
+        t[i] = cpucycles();
+        ret |= XMSS_SIGN_OPEN(msg, &msglen, sig, siglen, pk);
+    }
+    print_results(t, XMSS_SIGNATURES);
+
+    if (ret) {
+        printf("DETECTED VERIFICATION ERRORS!\n");
+    }
+
+    printf("Signature size: %d (%.2f KiB)\n", params.sig_bytes, params.sig_bytes / 1024.0);
+    printf("Public key size: %d (%.2f KiB)\n", params.pk_bytes, params.pk_bytes / 1024.0);
+    printf("Secret key size: %llu (%.2f KiB)\n", params.sk_bytes, params.sk_bytes / 1024.0);
+
+    wc_FreeRng(&rng);
+
+    free(msg);
+    free(sig);
+    free(t);
+
+    return ret;
 }
 
 static int rng_cb(void * output, size_t length)
@@ -130,104 +233,4 @@ static int sha256_cb(const unsigned char *in, unsigned long long inlen,
     wc_Sha256Free(&sha);
 
     return 0;
-}
-
-int main(void)
-{
-    /* Make stdout buffer more responsive. */
-    setbuf(stdout, NULL);
-
-    xmss_params params;
-    uint32_t oid;
-    int ret = 0;
-    int i;
-
-    ret = wc_InitRng(&rng);
-    if (ret != 0) {
-        printf("error: init rng failed: %d\n", ret);
-        return -1;
-    }
-
-    ret = xmss_set_sha_cb(sha256_cb);
-    if (ret != 0) {
-        printf("error: xmss_set_sha_cb failed");
-        return -1;
-    }
-
-    ret = xmss_set_rng_cb(rng_cb);
-    if (ret != 0) {
-        printf("error: xmss_set_rng_cb failed");
-        return -1;
-    }
-
-    // TODO test more different variants
-    if (XMSS_STR_TO_OID(&oid, XMSS_VARIANT)) {
-#ifdef XMSSMT
-        printf("XMSSMT variant %s not recognized!\n", XMSS_VARIANT);
-#else
-        printf("XMSS variant %s not recognized!\n", XMSS_VARIANT);
-#endif
-        return -1;
-    }
-    XMSS_PARSE_OID(&params, oid);
-
-    unsigned char pk[XMSS_OID_LEN + params.pk_bytes];
-    unsigned char sk[XMSS_OID_LEN + params.sk_bytes];
-    unsigned char *msg = malloc(XMSS_MLEN);
-    unsigned char *sig = malloc(params.sig_bytes);
-    unsigned char *msgout = malloc(XMSS_MLEN);
-    unsigned long long siglen;
-    unsigned long long msglen;
-
-    unsigned long long t0, t1;
-    unsigned long long *t = malloc(sizeof(unsigned long long) * XMSS_SIGNATURES);
-    struct timespec start, stop;
-    double result;
-
-    randombytes(msg, XMSS_MLEN);
-
-    printf("Benchmarking variant %s\n", XMSS_VARIANT);
-
-    printf("Generating keypair.. ");
-
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
-    t0 = cpucycles();
-    XMSS_KEYPAIR(pk, sk, oid);
-    t1 = cpucycles();
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
-    result = (stop.tv_sec - start.tv_sec) * 1e6 + (stop.tv_nsec - start.tv_nsec) / 1e3;
-    printf("took %lf us (%.2lf sec), %llu cycles\n", result, result / 1e6, t1 - t0);
-
-    printf("Creating %d signatures..\n", XMSS_SIGNATURES);
-
-    for (i = 0; i < XMSS_SIGNATURES; i++) {
-        t[i] = cpucycles();
-        XMSS_SIGN(sk, sig, &siglen, msg, XMSS_MLEN);
-    }
-    print_results(t, XMSS_SIGNATURES);
-
-    printf("Verifying %d signatures..\n", XMSS_SIGNATURES);
-
-    for (i = 0; i < XMSS_SIGNATURES; i++) {
-        t[i] = cpucycles();
-        ret |= XMSS_SIGN_OPEN(msgout, &msglen, sig, siglen, pk);
-    }
-    print_results(t, XMSS_SIGNATURES);
-
-    if (ret) {
-        printf("DETECTED VERIFICATION ERRORS!\n");
-    }
-
-    printf("Signature size: %d (%.2f KiB)\n", params.sig_bytes, params.sig_bytes / 1024.0);
-    printf("Public key size: %d (%.2f KiB)\n", params.pk_bytes, params.pk_bytes / 1024.0);
-    printf("Secret key size: %llu (%.2f KiB)\n", params.sk_bytes, params.sk_bytes / 1024.0);
-
-    wc_FreeRng(&rng);
-
-    free(msg);
-    free(sig);
-    free(msgout);
-    free(t);
-
-    return ret;
 }
